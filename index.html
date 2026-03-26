@@ -682,17 +682,33 @@ select.fi{cursor:pointer;}
 <div class="overlay" id="m-consult-cliente">
   <div class="modal">
     <div class="modal-h"></div>
-    <div class="mt">Novo Cliente - Consultoria</div>
+    <div class="mt">Novo Cliente - Consultoria</div><div class="ms">Preencha os dados do cliente</div>
     <div class="fr2">
-      <div class="fg"><label class="fl">Nome</label><input class="fi" id="cc-nome" placeholder="Nome do cliente"></div>
+      <div class="fg"><label class="fl">Nome</label><input class="fi" id="cc-nome" placeholder="Nome completo"></div>
       <div class="fg"><label class="fl">Telefone</label><input class="fi" id="cc-tel" placeholder="(81) 9xxxx-xxxx"></div>
     </div>
     <div class="fr2">
-      <div class="fg"><label class="fl">Plano</label><select class="fi" id="cc-plano" onchange="autoVal('cc-valor','consult',this.value)"></select></div>
-      <div class="fg"><label class="fl">Valor <small style="color:var(--muted)">(edit&aacute;vel)</small></label><input class="fi" id="cc-valor" type="number"></div>
+      <div class="fg"><label class="fl">Plano</label><select class="fi" id="cc-plano"></select></div>
+      <div class="fg"><label class="fl">Tipo</label><select class="fi" id="cc-tipo" onchange="toggleMesesConsult(this.value)">
+        <option value="unico">Único</option>
+        <option value="recorrente">Recorrente</option>
+      </select></div>
+    </div>
+    <div class="fg" id="cc-meses-group" style="display:none">
+      <label class="fl">Duração (meses)</label>
+      <select class="fi" id="cc-meses" onchange="calcValorMensalConsult()">
+        <option value="1">1 mês</option><option value="2">2 meses</option><option value="3">3 meses</option>
+        <option value="4">4 meses</option><option value="5">5 meses</option><option value="6">6 meses</option>
+        <option value="7">7 meses</option><option value="8">8 meses</option><option value="9">9 meses</option>
+        <option value="10">10 meses</option><option value="11">11 meses</option><option value="12">12 meses</option>
+      </select>
     </div>
     <div class="fr2">
-      <div class="fg"><label class="fl">Data in&iacute;cio</label><input class="fi" id="cc-inicio" type="date"></div>
+      <div class="fg"><label class="fl">Valor Total (R$)</label><input class="fi" id="cc-valor-total" type="number" placeholder="0,00" oninput="calcValorMensalConsult()"></div>
+      <div class="fg"><label class="fl">Valor Mensal</label><div class="fi" style="background:var(--s1);cursor:default;color:var(--up);font-weight:600" id="cc-valor-mensal">—</div></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Data início</label><input class="fi" id="cc-inicio" type="date"></div>
       <div class="fg"><label class="fl">Pgto</label><select class="fi" id="cc-pgto"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>
     </div>
     <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-consult-cliente')">Cancelar</button><button class="btn btn-primary" onclick="salvarClienteConsult()">Salvar</button></div>
@@ -993,7 +1009,7 @@ function openModal(id,area){
   document.getElementById(id).classList.add('open');
   ['la-inicio','lp-data','cc-inicio','as-data','rp-data','re-data'].forEach(fid=>{const el=document.getElementById(fid);if(el&&!el.value)el.value=TODAY_STR;});
   if(id==='m-letz-aluno'){popSel('la-plano','letz');autoVal('la-valor','letz',document.getElementById('la-plano')?.value);document.getElementById('la-inicio').value=TODAY_STR;}
-  if(id==='m-consult-cliente'){popSel('cc-plano','consult');autoVal('cc-valor','consult',document.getElementById('cc-plano')?.value);document.getElementById('cc-inicio').value=TODAY_STR;}
+  if(id==='m-consult-cliente'){popSel('cc-plano','consult');document.getElementById('cc-inicio').value=TODAY_STR;document.getElementById('cc-tipo').value='unico';document.getElementById('cc-meses-group').style.display='none';document.getElementById('cc-valor-total').value='';document.getElementById('cc-valor-mensal').textContent='—';}
   if(id==='m-letz-pgto'){document.getElementById('lp-aluno').innerHTML=S.letzAlunos.filter(a=>a.ativo).map(a=>`<option value="${a.id}">${a.nome}</option>`).join('');}
   if(id==='m-aval-sessao'){document.getElementById('as-valor').value=cfg.avalP;document.getElementById('as-data').value=TODAY_STR;}
 }
@@ -1154,17 +1170,45 @@ async function salvarGasto(){
   else if(area==='consult')renderConsultoria();
   else if(area==='aval')renderAvaliacao();
 }
+function toggleMesesConsult(tipo){
+  const g=document.getElementById('cc-meses-group');
+  if(g)g.style.display=tipo==='recorrente'?'block':'none';
+  calcValorMensalConsult();
+}
+function calcValorMensalConsult(){
+  const tipo=document.getElementById('cc-tipo')?.value;
+  const meses=+document.getElementById('cc-meses')?.value||1;
+  const valorTotal=+document.getElementById('cc-valor-total')?.value||0;
+  const mensal=document.getElementById('cc-valor-mensal');
+  if(!mensal)return;
+  if(tipo==='recorrente'&&valorTotal>0){
+    mensal.textContent='R$ '+(valorTotal/meses).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  } else if(valorTotal>0){
+    mensal.textContent='R$ '+valorTotal.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  } else {
+    mensal.textContent='—';
+  }
+}
 async function salvarClienteConsult(){
   const nome=document.getElementById('cc-nome').value.trim();if(!nome){toast('Preencha o nome','(!)');return;}
   const plano=document.getElementById('cc-plano').value;
-  const valor=+document.getElementById('cc-valor').value;
+  const valorTotal=+document.getElementById('cc-valor-total').value;if(!valorTotal){toast('Informe o valor','(!)');return;}
   const inicio=document.getElementById('cc-inicio').value;
-  const plan=cfg.consultPlans.find(p=>p.id===plano);
-  let venc=null;if(plan?.dias){const v=new Date(inicio);v.setDate(v.getDate()+plan.dias);venc=v.toISOString().split('T')[0];}
-  const row=await dbInsert('consult_clientes',{nome,tel:document.getElementById('cc-tel').value,plano,valor,inicio,venc,pgto:document.getElementById('cc-pgto').value,ativo:true,cor:rndCor()});
+  const pgto=document.getElementById('cc-pgto').value;
+  const tipo=document.getElementById('cc-tipo').value;
+  const meses=tipo==='recorrente'?+document.getElementById('cc-meses').value:null;
+  const valorMensal=meses?+(valorTotal/meses).toFixed(2):valorTotal;
+  let venc=null;
+  if(meses&&inicio){
+    const v=new Date(inicio+'T12:00:00');
+    v.setMonth(v.getMonth()+meses);
+    venc=v.toISOString().split('T')[0];
+  }
+  const row=await dbInsert('consult_clientes',{nome,tel:document.getElementById('cc-tel').value,plano,valor:valorMensal,inicio,venc,pgto,ativo:true,cor:rndCor()});
   if(!row)return;
   S.consultClientes.push(rowToCliente(row));
-  closeModal('m-consult-cliente');['cc-nome','cc-tel'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  closeModal('m-consult-cliente');
+  ['cc-nome','cc-tel'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   toast(`${nome} cadastrado!`);renderConsultoria();updateBadge();
 }
 
