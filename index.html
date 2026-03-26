@@ -1059,7 +1059,7 @@ function checkRenovacoes(){
   });
   S.consultClientes.forEach(c=>{
     const antes=c.venc;
-    autoRenovar(c,cfg.consultPlans));
+    autoRenovar(c,cfg.consultPlans);
     if(c.venc!==antes&&CURRENT_USER)
       dbUpdate('consult_clientes',c.id,{venc:c.venc,pgto:'pendente'});
   });
