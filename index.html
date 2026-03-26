@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>EuFinance</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   --bg:#0c0c0c;
@@ -747,8 +747,8 @@ select.fi{cursor:pointer;}
 <script>
 /* SUPABASE */
 const _sb = supabase.createClient(
-  'https://xsmxfllymdbtbgfcdmpz.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzbXhmbGx5bWRidGJnZmNkbXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0ODMwMjcsImV4cCI6MjA5MDA1OTAyN30.OmwLfwigaG4FmSPtkFtgqdURJDmN65NUfH8VJmM909c'
+  'https://idsaqhxyvadukrsvugcw.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlkc2FxaHh5dmFkdWtyc3Z1Z2N3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NjczNzYsImV4cCI6MjA5MDA0MzM3Nn0.KZhfxRZTEJ7vIpIzE2IUkUdjrmtUnALoEUYeX1BBnvQ'
 );
 let CURRENT_USER = null;
 
@@ -787,7 +787,6 @@ function doLogout(){
 }
 function showLoading(on){const b=document.getElementById('loading-bar');if(b)b.style.display=on?'block':'none';}
 
-/* DB helpers */
 async function dbInsert(table,row){
   const{data,error}=await _sb.from(table).insert({...row,user_id:CURRENT_USER.id}).select().single();
   if(error){toast('Erro ao salvar: '+error.message,'(!)');return null;}
@@ -804,7 +803,6 @@ async function dbDelete(table,id){
   return true;
 }
 
-/* Carrega todos os dados do banco */
 async function loadAllData(){
   showLoading(true);
   const uid=CURRENT_USER.id;
@@ -834,9 +832,9 @@ async function loadAllData(){
   if(cfgRow.data){
     cfg.avalP=cfgRow.data.aval_p;
     cfg.avalO=cfgRow.data.aval_o;
-    if(cfgRow.data.letz_plans?.length) cfg.letzPlans=cfgRow.data.letz_plans;
-    if(cfgRow.data.consult_plans?.length) cfg.consultPlans=cfgRow.data.consult_plans;
-    if(cfgRow.data.cats?.length) cfg.cats=cfgRow.data.cats;
+    if(cfgRow.data.letz_plans?.length)cfg.letzPlans=cfgRow.data.letz_plans;
+    if(cfgRow.data.consult_plans?.length)cfg.consultPlans=cfgRow.data.consult_plans;
+    if(cfgRow.data.cats?.length)cfg.cats=cfgRow.data.cats;
   }
   showLoading(false);
   checkRenovacoes();
@@ -844,7 +842,6 @@ async function loadAllData(){
   renderDashboard();
 }
 
-/* Salva config no banco */
 async function saveConfig(){
   const uid=CURRENT_USER.id;
   const{error}=await _sb.from('config').upsert({user_id:uid,aval_p:cfg.avalP,aval_o:cfg.avalO,letz_plans:cfg.letzPlans,consult_plans:cfg.consultPlans,cats:cfg.cats},{onConflict:'user_id'});
@@ -852,7 +849,6 @@ async function saveConfig(){
   else toast('Configuracoes salvas!');
 }
 
-/* Converters */
 function rowToAluno(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#3b82f6'};}
 function rowToCliente(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#06b6d4'};}
 function rowToPgto(r){return{id:r.id,alunoNome:r.aluno_nome||r.alunoNome,mes:r.mes,valor:+r.valor,data:r.data,metodo:r.metodo};}
@@ -1312,10 +1308,10 @@ function renderLetzAlunos(){
           <span style="font-weight:600;color:var(--white)">${fmt(a.valor)}</span>
         </div>
         <div class="ci-acts">
-          ${a.ativo&&st==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('letz',${a.id})">Pago</button>`:''}
-          <button class="btn btn-ghost btn-sm" onclick="editarAluno(${a.id})">(edit)</button>
-          <button class="btn ${a.ativo?'btn-gray':'btn-ghost'} btn-sm" onclick="toggleInativo('letz',${a.id})">${a.ativo?'Inativar':'Ativar'}</button>
-          <button class="btn btn-danger btn-sm" onclick="remover('letz',${a.id})">x</button>
+          ${a.ativo&&st==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('letz','${a.id}')">Pago</button>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="editarAluno('${a.id}')">(edit)</button>
+          <button class="btn ${a.ativo?'btn-gray':'btn-ghost'} btn-sm" onclick="toggleInativo('letz','${a.id}')">${a.ativo?'Inativar':'Ativar'}</button>
+          <button class="btn btn-danger btn-sm" onclick="remover('letz','${a.id}')">x</button>
         </div>
       </div>
       ${a.ativo?`<div>${proximoPagamentoInfo(a,cfg.letzPlans)}</div>`:''}
@@ -1349,7 +1345,7 @@ function renderLetzPgtosLista(){
           <span style="font-size:11px;color:var(--muted2)">${p.metodo}</span>
           <span style="font-size:11px;color:var(--muted)">${p.data}</span>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="remover('lp',${p.id})">x</button>
+        <button class="btn btn-danger btn-sm" onclick="remover('lp','${p.id}')">x</button>
       </div>
     </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum pagamento</div>';
 }
@@ -1363,7 +1359,7 @@ function renderLetzExtrasLista(){
       </div>
       <div class="ci-bot">
         <span style="font-size:11px;color:var(--muted)">${e.data}</span>
-        <button class="btn btn-danger btn-sm" onclick="remover('le',${e.id})">x</button>
+        <button class="btn btn-danger btn-sm" onclick="remover('le','${e.id}')">x</button>
       </div>
     </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhuma receita variavel</div>';
 }
@@ -1393,7 +1389,7 @@ function renderLetzGastosLista(){
           ${parcelaB(g)}
           <span style="font-size:11px;color:var(--muted)">${g.data}</span>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="remover('lg',${g.id})">x</button>
+        <button class="btn btn-danger btn-sm" onclick="remover('lg','${g.id}')">x</button>
       </div>
     </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum gasto</div>';
 }
@@ -1434,10 +1430,10 @@ function renderConsultLista(){
           <span style="font-weight:600;color:var(--white)">${fmt(c.valor)}</span>
         </div>
         <div class="ci-acts">
-          ${c.ativo&&st==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('consult',${c.id})">Pago</button>`:''}
-          <button class="btn btn-ghost btn-sm" onclick="editarCliente(${c.id})">(edit)</button>
-          <button class="btn ${c.ativo?'btn-gray':'btn-ghost'} btn-sm" onclick="toggleInativo('consult',${c.id})">${c.ativo?'Inativar':'Ativar'}</button>
-          <button class="btn btn-danger btn-sm" onclick="remover('consult',${c.id})">x</button>
+          ${c.ativo&&st==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('consult','${c.id}')">Pago</button>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="editarCliente('${c.id}')">(edit)</button>
+          <button class="btn ${c.ativo?'btn-gray':'btn-ghost'} btn-sm" onclick="toggleInativo('consult','${c.id}')">${c.ativo?'Inativar':'Ativar'}</button>
+          <button class="btn btn-danger btn-sm" onclick="remover('consult','${c.id}')">x</button>
         </div>
       </div>
       ${c.ativo?`<div>${proximoPagamentoInfo(c,cfg.consultPlans)}</div>`:''}
@@ -1456,7 +1452,7 @@ function renderConsultGastos(){
       <div class="ci-top"><span style="font-weight:500;color:var(--white)">${g.desc}</span>
         <div style="text-align:right"><div style="color:var(--yellow);font-weight:600">${fmt(parcelaVal(g))}<span style="font-size:10px;color:var(--muted)">/mes</span></div>${g.parcelas>1?`<div style="font-size:10px;color:var(--muted)">Total ${fmt(g.valorTotal)}</div>`:''}</div>
       </div>
-      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('cg',${g.id})">x</button></div>
+      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('cg','${g.id}')">x</button></div>
     </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum gasto</div>';
 }
 
@@ -1493,8 +1489,8 @@ function renderAvalLista(){
           ${a.metodo?`<span style="font-size:11px;color:var(--muted2)">${a.metodo}</span>`:''}
         </div>
         <div class="ci-acts">
-          ${a.pgto==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('aval',${a.id})">Pago</button>`:''}
-          <button class="btn btn-danger btn-sm" onclick="remover('aval',${a.id})">x</button>
+          ${a.pgto==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('aval','${a.id}')">Pago</button>`:''}
+          <button class="btn btn-danger btn-sm" onclick="remover('aval','${a.id}')">x</button>
         </div>
       </div>
     </div>`).join('');
@@ -1512,7 +1508,7 @@ function renderAvalGastos(){
       <div class="ci-top"><span style="font-weight:500;color:var(--white)">${g.desc}</span>
         <div style="text-align:right"><div style="color:var(--yellow);font-weight:600">${fmt(parcelaVal(g))}<span style="font-size:10px;color:var(--muted)">/mes</span></div>${g.parcelas>1?`<div style="font-size:10px;color:var(--muted)">Total ${fmt(g.valorTotal)}</div>`:''}</div>
       </div>
-      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('ag',${g.id})">x</button></div>
+      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('ag','${g.id}')">x</button></div>
     </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum gasto</div>';
 }
 
@@ -1537,13 +1533,13 @@ function renderPessoal(){
       <div class="ci-top"><span style="font-weight:500;color:var(--white)">${g.desc}</span>
         <div style="text-align:right"><div style="color:var(--yellow);font-weight:600">${fmt(parcelaVal(g))}<span style="font-size:10px;color:var(--muted)">/mes</span></div>${g.parcelas>1?`<div style="font-size:10px;color:var(--muted)">Total ${fmt(g.valorTotal)}</div>`:''}</div>
       </div>
-      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span class="badge ${g.tipo==='fixo'?'br':'by'}">${g.tipo}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('pg',${g.id})">x</button></div>
+      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span class="badge ${g.tipo==='fixo'?'br':'by'}">${g.tipo}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('pg','${g.id}')">x</button></div>
     </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum gasto</div>';
   const tr=document.getElementById('lista-receitas-pessoais');
   if(tr)tr.innerHTML=S.receitasPessoais.map(r=>`
     <div class="ci">
       <div class="ci-top"><span style="font-weight:500;color:var(--white)">${r.desc}</span><span style="color:var(--green);font-weight:600">${fmt(r.valor)}</span></div>
-      <div class="ci-bot"><span style="font-size:11px;color:var(--muted)">${r.data}</span><button class="btn btn-danger btn-sm" onclick="remover('pr',${r.id})">x</button></div>
+      <div class="ci-bot"><span style="font-size:11px;color:var(--muted)">${r.data}</span><button class="btn btn-danger btn-sm" onclick="remover('pr','${r.id}')">x</button></div>
     </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhuma receita</div>';
 }
 
@@ -1562,7 +1558,7 @@ function renderAlertas(){
       <div class="ci-top"><span style="font-weight:500;color:var(--white)">${a.nome}</span><span style="font-size:11px;color:var(--muted)">${a.area}</span></div>
       <div class="ci-bot">
         <div class="ci-meta">${a.d!==null?diasB(a.d,false):''} ${pgtoB(a.pgto)} <span style="font-weight:600;color:var(--white)">${fmt(a.valor)}</span></div>
-        <div class="ci-acts">${a.pgto==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('${a.tipo}',${a.id})">Pago</button>`:''}</div>
+        <div class="ci-acts">${a.pgto==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('${a.tipo}','${a.id}')">Pago</button>`:''}</div>
       </div>
     </div>`).join(''):'<div style="text-align:center;padding:32px;color:var(--muted)"> Nenhum alerta!</div>';
 }
@@ -1764,7 +1760,7 @@ function addPlan(area){
   saveConfig();
 }
 
-/* INIT - verifica sessao ativa */
+/* INIT */
 document.getElementById('app').style.display='none';
 document.getElementById('login-screen').style.display='flex';
 (async()=>{
