@@ -745,10 +745,16 @@ select.fi{cursor:pointer;}
     <div class="modal-h"></div>
     <div class="mt">Nova Receita Pessoal</div>
     <div class="fr2">
-      <div class="fg"><label class="fl">Descri&ccedil;&atilde;o</label><input class="fi" id="rp-desc" placeholder="Ex: Pr&oacute;-labore"></div>
+      <div class="fg"><label class="fl">Tipo</label><select class="fi" id="rp-tipo">
+        <option value="prolabore">Pró-labore</option>
+        <option value="outro">Outra receita</option>
+      </select></div>
       <div class="fg"><label class="fl">Valor (R$)</label><input class="fi" id="rp-valor" type="number"></div>
     </div>
-    <div class="fg"><label class="fl">Data</label><input class="fi" id="rp-data" type="date"></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Descrição</label><input class="fi" id="rp-desc" placeholder="Ex: Pró-labore março"></div>
+      <div class="fg"><label class="fl">Data</label><input class="fi" id="rp-data" type="date"></div>
+    </div>
     <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-receita-pessoal')">Cancelar</button><button class="btn btn-primary" onclick="salvarReceitaPessoal()">Salvar</button></div>
   </div>
 </div>
@@ -883,7 +889,7 @@ function rowToPgto(r){return{id:r.id,alunoNome:r.aluno_nome||r.alunoNome,mes:r.m
 function rowToExtra(r){return{id:r.id,tipo:r.tipo,desc:r.descricao||r.desc||'',valor:+r.valor,data:r.data};}
 function rowToGasto(r){return{id:r.id,desc:r.descricao||r.desc,cat:r.categoria||r.cat||'Outros',tipo:r.tipo||'variavel',metodo:r.metodo||'PIX',parcelas:r.parcelas||1,valorTotal:+(r.valor_total||r.valorTotal),data:r.data};}
 function rowToSessao(r){return{id:r.id,nome:r.nome,tipo:r.tipo,data:r.data,valor:+r.valor,pgto:r.pgto,metodo:r.metodo};}
-function rowToReceita(r){return{id:r.id,desc:r.descricao||r.desc,valor:+r.valor,data:r.data};}
+function rowToReceita(r){return{id:r.id,desc:r.descricao||r.desc,valor:+r.valor,data:r.data,tipo:r.tipo||'outro'};}
 
 /* CONFIG & STATE */
 const cfg={
@@ -1328,10 +1334,11 @@ async function salvarSessaoAval(){
   toast('Sessao registrada!');renderAvaliacao();
 }
 async function salvarReceitaPessoal(){
-  const desc=document.getElementById('rp-desc').value.trim();
   const valor=+document.getElementById('rp-valor').value;
-  if(!desc||!valor){toast('Preencha todos os campos','(!)');return;}
-  const row=await dbInsert('pessoal_receitas',{descricao:desc,valor,data:document.getElementById('rp-data').value});
+  const desc=document.getElementById('rp-desc').value.trim()||document.getElementById('rp-tipo').value;
+  if(!valor){toast('Informe o valor','(!)');return;}
+  const tipo=document.getElementById('rp-tipo').value;
+  const row=await dbInsert('pessoal_receitas',{descricao:desc,valor,data:document.getElementById('rp-data').value,tipo});
   if(!row)return;
   S.receitasPessoais.unshift(rowToReceita(row));
   closeModal('m-receita-pessoal');toast('Receita registrada!');renderPessoal();
@@ -1796,11 +1803,15 @@ function getMesData(ano, mes) {
 
   // Pessoal
   const pessoalRecMes = S.receitasPessoais.filter(r=>inMes(r.data,ano,mes));
-  const pessoalRec = pessoalRecMes.map(r=>({desc:r.desc,sub:'',val:r.valor,tipo:'receita'}));
+  const prolaboreMes = pessoalRecMes.filter(r=>r.tipo==='prolabore');
+  const outrasRecMes = pessoalRecMes.filter(r=>r.tipo!=='prolabore');
+  const pessoalRec = pessoalRecMes.map(r=>({desc:r.desc,sub:r.tipo==='prolabore'?'Pró-labore':'Receita',val:r.valor,tipo:'receita'}));
   const pessoalGasMes = S.gastosPessoais.filter(g=>gastoAtivoParcela(g,ano,mes));
   const pessoalGas = pessoalGasMes.map(g=>({desc:g.desc,sub:`${g.cat}  ${g.tipo}  ${g.metodo}`,val:parcelaVal(g),valTotal:g.parcelas>1?g.valorTotal:null,parc:g.parcelas>1?parcelaB(g):null,tipo:'gasto'}));
 
   const sum = arr => arr.reduce((s,x)=>s+x.val,0);
+  const prolaboreVal = prolaboreMes.reduce((s,r)=>s+r.valor,0);
+  const recNeg = sum(letzRec)+sum(consultRec)+sum(avalRec);
   return {
     areas:[
       {id:'letz',nome:'Letz Academia',rec:letzRec,gas:letzGas},
@@ -1810,6 +1821,12 @@ function getMesData(ano, mes) {
     ],
     totalRec: sum(letzRec)+sum(consultRec)+sum(avalRec)+sum(pessoalRec),
     totalGas: sum(letzGas)+sum(consultGas)+sum(avalGas)+sum(pessoalGas),
+    prolaboreVal,
+    recNeg,
+    letzRec:sum(letzRec), letzGas:sum(letzGas),
+    consultRec:sum(consultRec), consultGas:sum(consultGas),
+    avalRec:sum(avalRec), avalGas:sum(avalGas),
+    pessoalRec:sum(pessoalRec), pessoalGas:sum(pessoalGas),
   };
 }
 
@@ -1817,8 +1834,8 @@ function txItem(tx){
   return`<div class="tx-item">
     <div><div class="tx-desc">${tx.desc}</div>${tx.sub?`<div class="tx-cat">${tx.sub}</div>`:''}</div>
     <div class="tx-val-wrap">
-      <div class="tx-val" style="color:${tx.tipo==='receita'?'var(--green)':'var(--red)'}">${tx.tipo==='receita'?'+':''}${fmt(tx.val)}</div>
-      ${tx.valTotal?`<div class="tx-total">Total ${fmt(tx.valTotal)} ${tx.parc||''}</div>`:''}
+      <div class="tx-val" style="color:${tx.tipo==='receita'?'var(--up)':'var(--down)'}">${tx.tipo==='receita'?'+':'-'}${fmt(tx.val)}</div>
+      ${tx.valTotal?`<div class="tx-total">Total -${fmt(tx.valTotal)} ${tx.parc||''}</div>`:''}
     </div>
   </div>`;
 }
@@ -1835,27 +1852,60 @@ function renderMeses(){
 
   el.innerHTML=mesesList.map(({ano,mes},idx)=>{
     const data=getMesData(ano,mes);
-    const sumRec=a=>a.rec.reduce((s,x)=>s+x.val,0);
-    const sumGas=a=>a.gas.reduce((s,x)=>s+x.val,0);
     const liq=data.totalRec-data.totalGas;
     const isAtual=ano===atualAno&&mes===atualMes;
     const bid=`mes-${ano}-${mes}`;
+
+    // Cards estilo dashboard
+    const scCard=(lbl,val,cor)=>`<div class="sc" style="--ac:${cor};border-color:${cor}66"><div class="sc-lbl">${lbl}</div><div class="sc-val" style="color:${cor}">${fmt(val)}</div></div>`;
+    const liqCard=(lbl,val)=>`<div class="sc" style="--ac:${val>=0?'var(--up)':'var(--down)'}"><div class="sc-lbl">${lbl}</div><div class="sc-val" style="color:${val>=0?'var(--up)':'var(--down)'}">${fmt(val)}</div></div>`;
+
+    const recNegLiq = data.recNeg - data.prolaboreVal;
+    const totalGasNegocios = data.letzGas+data.consultGas+data.avalGas;
+    const totalGas = data.totalGas;
+
+    const cardsHTML=`
+      <div style="padding:14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">Resumo por área</div>
+        <div class="cg cg2" style="margin-bottom:10px">
+          ${scCard('Receita Letz',data.letzRec,'var(--up)')}
+          ${scCard('Gastos Letz',-data.letzGas,'var(--down)')}
+          ${scCard('Receita Consult.',data.consultRec,'var(--up)')}
+          ${scCard('Gastos Consult.',-data.consultGas,'var(--down)')}
+          ${scCard('Receita Aval.',data.avalRec,'var(--up)')}
+          ${scCard('Gastos Aval.',-data.avalGas,'var(--down)')}
+          ${scCard('Receita Pessoal',data.pessoalRec,'var(--up)')}
+          ${scCard('Gastos Pessoal',-data.pessoalGas,'var(--down)')}
+        </div>
+        <div style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;margin-top:4px">Resultado</div>
+        <div class="cg cg2">
+          ${liqCard('Liq. Letz',data.letzRec-data.letzGas)}
+          ${liqCard('Liq. Consult.',data.consultRec-data.consultGas)}
+          ${liqCard('Liq. Aval.',data.avalRec-data.avalGas)}
+          ${liqCard('Liq. Negócios',data.recNeg-totalGasNegocios)}
+          ${scCard('Pró-labore',-data.prolaboreVal,'var(--warn)')}
+          ${liqCard('Receita Real',data.recNeg-data.prolaboreVal)}
+          ${scCard('Total Custos',-totalGas,'var(--down)')}
+          ${liqCard('Saldo Final',data.totalRec-totalGas)}
+        </div>
+      </div>`;
 
     const areasHTML=data.areas.map(area=>{
       const r=area.rec.reduce((s,x)=>s+x.val,0);
       const g=area.gas.reduce((s,x)=>s+x.val,0);
       const l=r-g;
       const txs=[...area.rec,...area.gas].sort((a,b)=>a.tipo===b.tipo?0:a.tipo==='receita'?-1:1);
+      if(!txs.length)return'';
       return`<div class="area-bloco">
         <div class="area-bloco-head">
-          <div class="area-bloco-title">${area.emoji} ${area.nome}</div>
+          <div class="area-bloco-title">${area.nome}</div>
           <div class="area-stats">
             <span class="area-rec">+${fmt(r)}</span>
-            <span class="area-gas">${fmt(g)}</span>
-            <span class="area-liq" style="color:${l>=0?'var(--green)':'var(--red)'}">=${fmt(l)}</span>
+            <span class="area-gas">-${fmt(g)}</span>
+            <span class="area-liq" style="color:${l>=0?'var(--up)':'var(--down)'}">=${fmt(l)}</span>
           </div>
         </div>
-        ${txs.length?txs.map(tx=>txItem(tx)).join(''):`<div class="tx-empty">Nenhuma movimentacao</div>`}
+        ${txs.map(tx=>txItem(tx)).join('')}
       </div>`;
     }).join('');
 
@@ -1868,13 +1918,14 @@ function renderMeses(){
         <div style="display:flex;align-items:center;gap:10px">
           <div class="mes-resumo">
             <span class="mes-r">+${fmt(data.totalRec)}</span>
-            <span class="mes-g">${fmt(data.totalGas)}</span>
-            <span class="mes-liq" style="color:${liq>=0?'var(--green)':'var(--red)'}">=${fmt(liq)}</span>
+            <span class="mes-g">-${fmt(data.totalGas)}</span>
+            <span class="mes-liq" style="color:${liq>=0?'var(--up)':'var(--down)'}">=${fmt(liq)}</span>
           </div>
           <span class="mes-chevron${isAtual?' open':''}" id="chev-${bid}">v</span>
         </div>
       </div>
       <div class="mes-body${isAtual?' open':''}" id="${bid}">
+        ${cardsHTML}
         ${areasHTML}
       </div>
     </div>`;
