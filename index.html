@@ -456,6 +456,29 @@ select.fi{cursor:pointer;}
   </div>
 </div>
 
+<!-- Modal: Editar Gasto Pessoal -->
+<div class="overlay" id="m-editar-gasto-pessoal">
+  <div class="modal">
+    <div class="modal-h"></div>
+    <div class="mt">Editar Gasto</div><div class="ms">Financas Pessoais</div>
+    <input type="hidden" id="egp-id">
+    <div class="fg"><label class="fl">Descricao</label><input class="fi" id="egp-desc"></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Categoria</label><select class="fi" id="egp-cat"></select></div>
+      <div class="fg"><label class="fl">Tipo</label><select class="fi" id="egp-tipo"><option value="fixo">Fixo</option><option value="variavel">Variavel</option></select></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Valor Total (R$)</label><input class="fi" id="egp-valor" type="number"></div>
+      <div class="fg"><label class="fl">Metodo</label><select class="fi" id="egp-metodo"><option>PIX</option><option>Cartao de Credito</option><option>Cartao de Debito</option><option>Dinheiro</option><option>Transferencia</option><option>Boleto</option></select></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Parcelas</label><select class="fi" id="egp-parc"><option value="1">A vista</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="8">8x</option><option value="10">10x</option><option value="12">12x</option><option value="18">18x</option><option value="24">24x</option></select></div>
+      <div class="fg"><label class="fl">Data</label><input class="fi" id="egp-data" type="date"></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-editar-gasto-pessoal')">Cancelar</button><button class="btn btn-primary" onclick="salvarEdicaoGastoPessoal()">Salvar</button></div>
+  </div>
+</div>
+
 <!-- AVALIA&Ccedil;&Atilde;O -->
 <div class="page" id="page-avaliacao">
   <div class="topbar">
@@ -1296,6 +1319,37 @@ async function _removerConfirmado(area,id){
   updateBadge();
 }
 
+function editarGastoPessoal(id){
+  const g=S.gastosPessoais.find(x=>x.id===id);if(!g)return;
+  document.getElementById('egp-id').value=g.id;
+  document.getElementById('egp-desc').value=g.desc;
+  document.getElementById('egp-valor').value=g.valorTotal;
+  document.getElementById('egp-cat').value=g.cat;
+  document.getElementById('egp-tipo').value=g.tipo;
+  document.getElementById('egp-metodo').value=g.metodo;
+  document.getElementById('egp-parc').value=g.parcelas||1;
+  document.getElementById('egp-data').value=g.data;
+  document.getElementById('m-editar-gasto-pessoal').classList.add('open');
+}
+async function salvarEdicaoGastoPessoal(){
+  const id=document.getElementById('egp-id').value;
+  const g=S.gastosPessoais.find(x=>x.id===id);if(!g)return;
+  const valorTotal=+document.getElementById('egp-valor').value||g.valorTotal;
+  const parcelas=+document.getElementById('egp-parc').value||1;
+  const updates={
+    descricao:document.getElementById('egp-desc').value.trim()||g.desc,
+    categoria:document.getElementById('egp-cat').value||g.cat,
+    tipo:document.getElementById('egp-tipo').value||g.tipo,
+    metodo:document.getElementById('egp-metodo').value||g.metodo,
+    parcelas,
+    valor_total:valorTotal,
+    data:document.getElementById('egp-data').value||g.data
+  };
+  await dbUpdate('pessoal_gastos',id,updates);
+  Object.assign(g,{desc:updates.descricao,cat:updates.categoria,tipo:updates.tipo,metodo:updates.metodo,parcelas:updates.parcelas,valorTotal:updates.valor_total,data:updates.data});
+  closeModal('m-editar-gasto-pessoal');
+  toast('Gasto atualizado!');renderPessoal();renderDashboard();
+}
 /* FILTERS */
 function filLetz(f,btn){S.filLetz=f;document.querySelectorAll('#page-letz .panel .fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderLetzAlunos();}
 function filConsult(f,btn){S.filConsult=f;document.querySelectorAll('#page-consultoria .panel .fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderConsultLista();}
@@ -1579,7 +1633,7 @@ function renderPessoal(){
       <div class="ci-top"><span style="font-weight:500;color:var(--white)">${g.desc}</span>
         <div style="text-align:right"><div style="color:var(--yellow);font-weight:600">${fmt(parcelaVal(g))}<span style="font-size:10px;color:var(--muted)">/mes</span></div>${g.parcelas>1?`<div style="font-size:10px;color:var(--muted)">Total ${fmt(g.valorTotal)}</div>`:''}</div>
       </div>
-      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span class="badge ${g.tipo==='fixo'?'br':'by'}">${g.tipo}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('pg','${g.id}')">x</button></div>
+      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span class="badge ${g.tipo==='fixo'?'br':'by'}">${g.tipo}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><div class="ci-acts"><button class="btn btn-ghost btn-sm" onclick="editarGastoPessoal('${g.id}')">(edit)</button><button class="btn btn-danger btn-sm" onclick="remover('pg','${g.id}')">x</button></div></div>
     </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum gasto</div>';
   const tr=document.getElementById('lista-receitas-pessoais');
   if(tr)tr.innerHTML=S.receitasPessoais.map(r=>`
@@ -1610,16 +1664,44 @@ function renderAlertas(){
 }
 
 /* RENDER: DASHBOARD */
+function gastoAtivoMes(g){
+  /* Retorna true se o gasto deve aparecer no mês atual:
+     - fixo/variavel de 1x: só no mês cadastrado
+     - parcelado: em cada mês dentro do período de parcelas
+     - fixo recorrente (parcelas=1,tipo=fixo): todo mês a partir do cadastro */
+  const hoje=TODAY;
+  const ini=new Date(g.data+'T12:00:00');
+  const anoIni=ini.getFullYear(), mesIni=ini.getMonth();
+  const anoHj=hoje.getFullYear(), mesHj=hoje.getMonth();
+  // ainda não começou
+  if(anoIni>anoHj||(anoIni===anoHj&&mesIni>mesHj)) return false;
+  if(g.parcelas>1){
+    // parcelado: ativo nos N meses a partir do início
+    const diffMeses=(anoHj-anoIni)*12+(mesHj-mesIni);
+    return diffMeses>=0&&diffMeses<g.parcelas;
+  }
+  if(g.tipo==='fixo'){
+    // fixo recorrente: aparece todo mês a partir do cadastro
+    return true;
+  }
+  // variável avulso: só no mês cadastrado
+  return anoIni===anoHj&&mesIni===mesHj;
+}
 function renderDashboard(){
   checkRenovacoes();
-  const letzRec=S.letzPgtos.reduce((s,p)=>s+p.valor,0)+S.letzExtras.reduce((s,e)=>s+e.valor,0);
-  const consultRec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo).reduce((s,c)=>s+c.valor,0);
-  const avalRec=S.avalSessoes.filter(a=>a.pgto==='pago').reduce((s,a)=>s+a.valor,0);
-  const pessoalRec=S.receitasPessoais.reduce((s,r)=>s+r.valor,0);
-  const letzGas=S.letzGastos.reduce((s,g)=>s+parcelaVal(g),0);
-  const consultGas=S.consultGastos.reduce((s,g)=>s+parcelaVal(g),0);
-  const avalGas=S.avalGastos.reduce((s,g)=>s+parcelaVal(g),0);
-  const pessoalGas=S.gastosPessoais.reduce((s,g)=>s+parcelaVal(g),0);
+  const _dm=TODAY.getMonth(),_da=TODAY.getFullYear();
+  const _inMes=d=>d&&new Date(d+'T12:00:00').getMonth()===_dm&&new Date(d+'T12:00:00').getFullYear()===_da;
+  // Receitas filtradas por mês atual
+  const letzRec=S.letzPgtos.filter(p=>_inMes(p.data)).reduce((s,p)=>s+p.valor,0)
+               +S.letzExtras.filter(e=>_inMes(e.data)).reduce((s,e)=>s+e.valor,0);
+  const consultRec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo&&_inMes(c.inicio)).reduce((s,c)=>s+c.valor,0);
+  const avalRec=S.avalSessoes.filter(a=>a.pgto==='pago'&&_inMes(a.data)).reduce((s,a)=>s+a.valor,0);
+  const pessoalRec=S.receitasPessoais.filter(r=>_inMes(r.data)).reduce((s,r)=>s+r.valor,0);
+  // Gastos: fixos recorrentes + parcelados ativos no mês atual
+  const letzGas=S.letzGastos.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
+  const consultGas=S.consultGastos.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
+  const avalGas=S.avalGastos.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
+  const pessoalGas=S.gastosPessoais.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
 
   const n=+document.getElementById('nb-badge').textContent;
   const aw=document.getElementById('d-banner');
