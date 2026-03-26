@@ -1084,15 +1084,27 @@ async function salvarAlunoLetz(){
   const plano=document.getElementById('la-plano').value;
   const valor=+document.getElementById('la-valor').value;
   const inicio=document.getElementById('la-inicio').value;
+  const pgto=document.getElementById('la-pgto').value;
   const plan=cfg.letzPlans.find(p=>p.id===plano);
   const v=new Date(inicio);v.setDate(v.getDate()+(plan?.dias||30));
   const venc=v.toISOString().split('T')[0];
   const cor=rndCor();
-  const row=await dbInsert('letz_alunos',{nome,tel:document.getElementById('la-tel').value,plano,valor,inicio,venc,pgto:document.getElementById('la-pgto').value,ativo:true,cor});
+  const row=await dbInsert('letz_alunos',{nome,tel:document.getElementById('la-tel').value,plano,valor,inicio,venc,pgto,ativo:true,cor});
   if(!row)return;
   S.letzAlunos.push(rowToAluno(row));
+  if(pgto==='pago'){
+    const pgtoRow=await dbInsert('letz_pagamentos',{
+      aluno_id:row.id,
+      aluno_nome:nome,
+      mes:MESES_NOMES[new Date(inicio).getMonth()]+'/'+String(new Date(inicio).getFullYear()).slice(2),
+      valor,
+      data:inicio,
+      metodo:'PIX'
+    });
+    if(pgtoRow)S.letzPgtos.unshift(rowToPgto(pgtoRow));
+  }
   closeModal('m-letz-aluno');['la-nome','la-tel'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  toast(`${nome} cadastrado!`);renderLetz();updateBadge();
+  toast(`${nome} cadastrado!`);renderLetz();renderDashboard();updateBadge();
 }
 async function salvarPgtoLetz(){
   const alunoId=document.getElementById('lp-aluno').value;
@@ -1236,8 +1248,20 @@ async function marcarPago(area,id){
   await dbUpdate(tableMap[area],id,{pgto:'pago'});
   const maps={letz:S.letzAlunos,consult:S.consultClientes,aval:S.avalSessoes};
   const item=maps[area]?.find(x=>x.id===id);if(item)item.pgto='pago';
+  if(area==='letz'&&item){
+    const row=await dbInsert('letz_pagamentos',{
+      aluno_id:item.id,
+      aluno_nome:item.nome,
+      mes:MESES_NOMES[TODAY.getMonth()]+'/'+String(TODAY.getFullYear()).slice(2),
+      valor:item.valor,
+      data:TODAY_STR,
+      metodo:'PIX'
+    });
+    if(row)S.letzPgtos.unshift(rowToPgto(row));
+  }
   toast('Pagamento confirmado! (ok)');
   ({letz:renderLetz,consult:renderConsultoria,aval:renderAvaliacao}[area]||(() => {}))();
+  renderDashboard();
   updateBadge();
 }
 async function toggleInativo(area,id){
