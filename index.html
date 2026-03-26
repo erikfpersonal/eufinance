@@ -1051,8 +1051,18 @@ function autoRenovar(item,plans){
   }
 }
 function checkRenovacoes(){
-  S.letzAlunos.forEach(a=>autoRenovar(a,cfg.letzPlans));
-  S.consultClientes.forEach(c=>autoRenovar(c,cfg.consultPlans));
+  S.letzAlunos.forEach(a=>{
+    const antes=a.venc;
+    autoRenovar(a,cfg.letzPlans);
+    if(a.venc!==antes&&CURRENT_USER)
+      dbUpdate('letz_alunos',a.id,{venc:a.venc,pgto:'pendente'});
+  });
+  S.consultClientes.forEach(c=>{
+    const antes=c.venc;
+    autoRenovar(c,cfg.consultPlans));
+    if(c.venc!==antes&&CURRENT_USER)
+      dbUpdate('consult_clientes',c.id,{venc:c.venc,pgto:'pendente'});
+  });
 }
 
 /* BADGE */
@@ -1333,7 +1343,13 @@ function renderLetzCards(){
 }
 function renderLetzPgtosLista(){
   const el=document.getElementById('lista-letz-pgtos');if(!el)return;
-  el.innerHTML=S.letzPgtos.map(p=>`
+  const _lm=TODAY.getMonth(),_la=TODAY.getFullYear();
+const pgtosMes=S.letzPgtos.filter(p=>{
+  if(!p.data)return false;
+  const d=new Date(p.data+'T12:00:00');
+  return d.getMonth()===_lm&&d.getFullYear()===_la;
+});
+el.innerHTML=pgtosMes.map(p=>`
     <div class="ci">
       <div class="ci-top">
         <span style="font-weight:500;color:var(--white)">${p.alunoNome}</span>
@@ -1470,7 +1486,12 @@ function renderAvaliacao(){
   renderAvalGastos();
 }
 function renderAvalLista(){
-  let list=S.avalSessoes;
+  const _am=TODAY.getMonth(),_aa=TODAY.getFullYear();
+let list=S.avalSessoes.filter(a=>{
+  if(!a.data)return false;
+  const d=new Date(a.data+'T12:00:00');
+  return d.getMonth()===_am&&d.getFullYear()===_aa;
+});
   if(S.filAval==='presencial')list=list.filter(a=>a.tipo==='presencial');
   if(S.filAval==='online')list=list.filter(a=>a.tipo==='online');
   if(S.filAval==='pendente')list=list.filter(a=>a.pgto==='pendente');
