@@ -1053,7 +1053,7 @@ function autoRenovar(item,plans){
 function checkRenovacoes(){
   S.letzAlunos.forEach(a=>{
     const antes=a.venc;
-    autoRenovar(a,cfg.letzPlans);
+    autoRenovar(c,cfg.consultPlans);
     if(a.venc!==antes&&CURRENT_USER)
       dbUpdate('letz_alunos',a.id,{venc:a.venc,pgto:'pendente'});
   });
