@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>EuFinance</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --bg:#0c0c0c;
+  --s1:#141414;
+  --s2:#1c1c1c;
+  --border:#262626;
+  --text:#e5e5e5;
+  --muted:#666;
+  --muted2:#999;
+  --white:#fff;
+  --up:#22c55e;
+  --down:#ef4444;
+  --warn:#f59e0b;
+  --accent:#fff;
+  --nav-w:200px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;font-size:14px;line-height:1.5;}
+button,select,input,textarea{font-family:inherit;}
+
+/* NAV BOTTOM */
+.bnav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:300;background:var(--s1);border-top:1px solid var(--border);padding:4px 0 calc(4px + env(safe-area-inset-bottom));overflow-x:auto;scrollbar-width:none;}
+.bnav::-webkit-scrollbar{display:none;}
+.nb{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px;cursor:pointer;font-size:9px;color:var(--muted);flex-shrink:0;min-width:50px;position:relative;letter-spacing:.02em;}
+.nb svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.75;}
+.nb.active{color:var(--white);}
+.nb-badge{position:absolute;top:4px;right:7px;background:var(--down);color:#fff;font-size:8px;font-weight:600;padding:1px 4px;border-radius:6px;min-width:13px;text-align:center;}
+
+/* SIDEBAR (desktop) */
+.sidebar{display:none;}
+
+/* MAIN */
+.main{padding:20px 16px calc(72px + env(safe-area-inset-bottom));max-width:680px;}
+
+@media(min-width:768px){
+  .bnav{display:none;}
+  .sidebar{display:flex;flex-direction:column;position:fixed;top:0;left:0;width:var(--nav-w);height:100vh;background:var(--s1);border-right:1px solid var(--border);z-index:200;overflow-y:auto;}
+  .main{margin-left:var(--nav-w);padding:28px 32px 48px;max-width:none;}
+}
+
+/* SIDEBAR INTERNALS */
+.sb-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border);}
+.logo-t{font-size:15px;font-weight:600;color:var(--white);letter-spacing:-.01em;}
+.logo-s{font-size:10px;color:var(--muted);margin-top:1px;}
+.nav-sec{padding:12px 8px 4px;}
+.nav-lbl{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 8px;margin-bottom:4px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--muted2);transition:color .1s;margin-bottom:1px;}
+.nav-item svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.75;flex-shrink:0;}
+.nav-item:hover{color:var(--text);}
+.nav-item.active{color:var(--white);background:var(--s2);}
+.nav-badge{margin-left:auto;background:var(--down);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:5px;}
+.sb-foot{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);}
+
+/* PAGES */
+.page{display:none;}
+.page.active{display:block;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:8px;flex-wrap:wrap;}
+.pg-title{font-size:17px;font-weight:600;color:var(--white);letter-spacing:-.02em;}
+.pg-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.top-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:4px;padding:7px 13px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--s2);color:var(--text);transition:background .1s,border-color .1s;white-space:nowrap;line-height:1;}
+.btn:hover{border-color:var(--muted);}
+.btn-primary{background:var(--white);color:#000;border-color:var(--white);}
+.btn-primary:hover{background:#e5e5e5;border-color:#e5e5e5;}
+.btn-ghost{background:transparent;border-color:var(--border);color:var(--muted2);}
+.btn-ghost:hover{color:var(--text);}
+.btn-danger{background:transparent;border-color:var(--border);color:var(--down);}
+.btn-green{background:transparent;border-color:var(--border);color:var(--up);}
+.btn-gray{background:transparent;border-color:var(--border);color:var(--muted);}
+.btn-sm{padding:4px 10px;font-size:11px;}
+
+/* STAT CARDS */
+.cg{display:grid;gap:8px;margin-bottom:16px;}
+.cg2{grid-template-columns:1fr 1fr;}
+.cg3{grid-template-columns:repeat(3,1fr);}
+.cg4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:480px){.cg3,.cg4{grid-template-columns:1fr 1fr;}}
+
+.sc{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.sc-lbl{font-size:10px;color:var(--muted);font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px;}
+.sc-val{font-size:18px;font-weight:600;color:var(--white);line-height:1;letter-spacing:-.02em;}
+.sc-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:20px 0;}
+
+/* SECTION TITLE */
+.sec-t{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;margin-top:4px;}
+
+/* PANEL */
+.panel{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
+.panel-title{font-size:13px;font-weight:500;color:var(--white);}
+
+/* CARD LIST */
+.card-list{display:flex;flex-direction:column;}
+.ci{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.ci:last-child{border-bottom:none;}
+.ci-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.ci-bot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.ci-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.ci-acts{display:flex;gap:4px;flex-wrap:wrap;}
+.ci.inativo{opacity:.4;}
+
+/* person chip */
+.chip{display:flex;align-items:center;gap:8px;}
+.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;background:var(--s2);border:1px solid var(--border);color:var(--muted2);}
+.cn{font-weight:500;color:var(--white);font-size:13px;}
+.cs{font-size:11px;color:var(--muted);}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;letter-spacing:.01em;}
+.bg{background:rgba(34,197,94,.1);color:var(--up);}
+.by{background:rgba(245,158,11,.1);color:var(--warn);}
+.br{background:rgba(239,68,68,.1);color:var(--down);}
+.bb{background:var(--s2);color:var(--muted2);border:1px solid var(--border);}
+.bp{background:var(--s2);color:var(--muted2);border:1px solid var(--border);}
+.bc{background:var(--s2);color:var(--muted2);border:1px solid var(--border);}
+.bx{background:var(--s2);color:var(--muted);border:1px solid var(--border);}
+.dok{font-size:11px;color:var(--up);}
+.dwarn{font-size:11px;color:var(--warn);}
+.dbad{font-size:11px;color:var(--down);}
+.pb{font-size:10px;color:var(--muted2);}
+
+/* FORM */
+.fi{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:9px 11px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s;}
+.fi:focus{border-color:var(--muted);}
+select.fi{cursor:pointer;}
+.fl{font-size:11px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px;}
+.fg{margin-bottom:12px;}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:480px){.fr2{grid-template-columns:1fr;}}
+
+/* FILTER PILLS */
+.fil{display:flex;gap:4px;flex-wrap:wrap;}
+.fb{padding:4px 11px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:all .1s;letter-spacing:.01em;}
+.fb.on{background:var(--s2);border-color:var(--muted);color:var(--white);}
+
+/* SEARCHBOX */
+.sbox{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:8px 11px;width:100%;}
+.sbox svg{width:13px;height:13px;stroke:var(--muted);fill:none;stroke-width:2;flex-shrink:0;}
+.sbox input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%;font-family:inherit;}
+
+/* ALERT BANNER */
+.ab{border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted2);}
+.ab a{color:var(--white);cursor:pointer;}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;align-items:flex-end;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:12px 12px 0 0;padding:16px 18px calc(16px + env(safe-area-inset-bottom));width:100%;max-width:520px;max-height:92vh;overflow-y:auto;animation:mUp .2s ease;}
+@keyframes mUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-h{width:36px;height:3px;background:var(--border);border-radius:3px;margin:0 auto 16px;}
+.mt{font-size:15px;font-weight:600;color:var(--white);margin-bottom:2px;letter-spacing:-.01em;}
+.ms{font-size:12px;color:var(--muted);margin-bottom:16px;}
+.mf{display:flex;gap:7px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);}
+.parc-prev{display:none;margin-bottom:12px;padding:9px 11px;background:var(--s2);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--muted2);}
+@media(min-width:768px){
+  .overlay{align-items:center;}
+  .modal{border-radius:10px;max-height:88vh;}
+  .modal-h{display:none;}
+}
+
+/* PROGRESS */
+.prog{background:var(--border);border-radius:2px;height:2px;overflow:hidden;margin-top:6px;}
+.prog-bar{height:100%;border-radius:2px;background:var(--muted2);}
+
+/* PLAN ITEM */
+.plan-item{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;margin-bottom:6px;}
+.plan-item input{background:none;border:none;outline:none;color:var(--text);font-size:13px;font-family:inherit;}
+.psep{width:1px;height:14px;background:var(--border);flex-shrink:0;}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(68px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-size:12px;display:none;align-items:center;gap:8px;z-index:9999;animation:tIn .25s ease;white-space:nowrap;color:var(--text);}
+.toast.show{display:flex;}
+@keyframes tIn{from{transform:translateX(-50%) translateY(6px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@media(min-width:768px){.toast{bottom:20px;}}
+
+/* MESES */
+.mes-bloco{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px;}
+.mes-header{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;background:var(--s1);cursor:pointer;user-select:none;}
+.mes-header-info{display:flex;align-items:center;gap:10px;}
+.mes-nome{font-size:14px;font-weight:600;color:var(--white);letter-spacing:-.01em;}
+.mes-atual-tag{font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;background:var(--s2);color:var(--muted2);border:1px solid var(--border);}
+.mes-resumo{display:flex;gap:10px;flex-wrap:wrap;}
+.mes-r{font-size:11px;color:var(--up);font-weight:500;}
+.mes-g{font-size:11px;color:var(--down);font-weight:500;}
+.mes-liq{font-size:11px;font-weight:600;}
+.mes-chevron{color:var(--muted);transition:transform .2s;font-size:12px;}
+.mes-chevron.open{transform:rotate(180deg);}
+.mes-body{display:none;}
+.mes-body.open{display:block;}
+
+.area-bloco{border-top:1px solid var(--border);}
+.area-bloco-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--s1);}
+.area-bloco-title{font-size:12px;font-weight:500;color:var(--white);}
+.area-stats{display:flex;gap:8px;align-items:center;}
+.area-rec{font-size:11px;color:var(--up);font-weight:500;}
+.area-gas{font-size:11px;color:var(--down);font-weight:500;}
+.area-liq{font-size:11px;font-weight:600;}
+.tx-item{display:flex;align-items:flex-start;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--border);gap:8px;}
+.tx-desc{font-size:12px;color:var(--text);}
+.tx-cat{font-size:10px;color:var(--muted);margin-top:1px;}
+.tx-val-wrap{text-align:right;flex-shrink:0;}
+.tx-val{font-size:12px;font-weight:500;}
+.tx-total{font-size:10px;color:var(--muted);}
+.tx-empty{padding:10px 14px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);}
+
+/* chart bars (dashboard) */
+.bar-wrap{display:flex;align-items:flex-end;gap:4px;height:70px;}
+.bar-col{display:flex;flex-direction:column;align-items:center;flex:1;}
+.bar{width:100%;border-radius:3px 3px 0 0;position:relative;min-height:2px;}
+.bar-v{font-size:8px;position:absolute;top:-13px;left:50%;transform:translateX(-50%);white-space:nowrap;color:var(--muted);}
+.bar-lbl{font-size:8px;color:var(--muted);margin-top:4px;text-align:center;}
+
+</style>
+</head>
+<body>
+
+<!-- LOADING BAR -->
+<div id="loading-bar" style="display:none;position:fixed;top:0;left:0;right:0;height:2px;background:var(--white);z-index:9999;animation:loadPulse 1s ease-in-out infinite;"></div>
+<style>@keyframes loadPulse{0%{opacity:.3}50%{opacity:1}100%{opacity:.3}}</style>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="position:fixed;inset:0;background:#000;z-index:800;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:40px 24px;">
+
+  <!-- LOGO SVG em azul -->
+  <div style="margin-bottom:20px;text-align:center">
+    <svg width="220" height="120" viewBox="0 0 300 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Icone F estilizado -->
+      <path d="M148 28 C148 28 158 18 170 22 C182 26 178 38 170 42 C162 46 152 42 152 42"
+            stroke="#3b82f6" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <!-- Texto Eufinace -->
+      <text x="18" y="115" font-family="Georgia, serif" font-size="68" font-weight="300"
+            fill="none" stroke="#3b82f6" stroke-width="1.5" letter-spacing="-1">Eufinace</text>
+    </svg>
+  </div>
+
+  <!-- Frase -->
+  <div style="text-align:center;max-width:280px;margin-bottom:40px">
+    <p style="font-size:13px;color:#444;line-height:1.7;font-style:italic">
+      &ldquo;Sem planejamento n&atilde;o tem como alcan&ccedil;ar grandes resultados&rdquo;
+    </p>
+  </div>
+
+  <!-- Formulário - só senha -->
+  <div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px">
+    <input class="fi" id="li-pass" type="password" placeholder="Senha"
+           style="font-size:15px;padding:13px 16px;background:#0a0a0a;border-color:#222;color:#fff;border-radius:8px;text-align:center;letter-spacing:2px"
+           onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="login-msg" style="font-size:12px;color:#ef4444;min-height:16px;text-align:center"></div>
+    <button id="li-btn" onclick="doLogin()"
+            style="width:100%;padding:13px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;letter-spacing:.02em">
+      Entrar
+    </button>
+  </div>
+
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+<!-- BOTTOM NAV -->
+<nav class="bnav" id="bnav">
+  <div class="nb active" onclick="go('dashboard')" data-p="dashboard">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>In&iacute;cio
+  </div>
+  <div class="nb" onclick="go('alertas')" data-p="alertas">
+    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Alertas
+    <span class="nb-badge" id="nb-badge">0</span>
+  </div>
+  <div class="nb" onclick="go('letz')" data-p="letz">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Letz
+  </div>
+  <div class="nb" onclick="go('consultoria')" data-p="consultoria">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Consult.
+  </div>
+  <div class="nb" onclick="go('avaliacao')" data-p="avaliacao">
+    <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Aval.
+  </div>
+  <div class="nb" onclick="go('pessoal')" data-p="pessoal">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>Pessoal
+  </div>
+  <div class="nb" onclick="go('meses')" data-p="meses">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Meses
+  </div>
+  <div class="nb" onclick="go('config')" data-p="config">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/></svg>Config
+  </div>
+</nav>
+
+<!-- SIDEBAR (desktop) -->
+<aside class="sidebar">
+  <div class="sb-logo"><div class="logo-t">EuFinance</div><div class="logo-s">Gest&atilde;o Completa</div></div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Vis&atilde;o Geral</div>
+    <div class="nav-item active" onclick="go('dashboard')" data-p="dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</div>
+    <div class="nav-item" onclick="go('alertas')" data-p="alertas"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Alertas<span class="nav-badge" id="sb-badge">0</span></div>
+    <div class="nav-item" onclick="go('meses')" data-p="meses"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Relat&oacute;rio Mensal</div>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">M&oacute;dulos</div>
+    <div class="nav-item" onclick="go('letz')" data-p="letz"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Letz Academia</div>
+    <div class="nav-item" onclick="go('consultoria')" data-p="consultoria"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Consultoria Online</div>
+    <div class="nav-item" onclick="go('avaliacao')" data-p="avaliacao"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Avalia&ccedil;&atilde;o Cl&iacute;nica</div>
+    <div class="nav-item" onclick="go('pessoal')" data-p="pessoal"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>Finan&ccedil;as Pessoais</div>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Sistema</div>
+    <div class="nav-item" onclick="go('config')" data-p="config"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/></svg>Configura&ccedil;&otilde;es</div>
+  </div>
+  <div class="sb-foot" style="display:flex;align-items:center;justify-content:space-between">
+    <span>EuFinance v3</span>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()" style="font-size:11px;padding:3px 8px">Sair</button>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="topbar">
+    <div><div class="pg-title">Dashboard</div><div class="pg-sub">Mar&ccedil;o 2026</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="go('alertas')">Alertas <span id="d-n"></span></button>
+  </div>
+  <div id="d-banner"></div>
+  <div class="sec-t">Letz Academia</div>
+  <div class="cg cg2" id="d-letz"></div>
+  <div class="sec-t">Consultoria Online</div>
+  <div class="cg cg2" id="d-consult"></div>
+  <div class="sec-t">Avalia&ccedil;&atilde;o Cl&iacute;nica</div>
+  <div class="cg cg2" id="d-aval"></div>
+  <div class="sec-t">Finan&ccedil;as Pessoais</div>
+  <div class="cg cg2" id="d-pessoal"></div>
+  <div class="sec-t">Resultado L&iacute;quido</div>
+  <div class="cg cg2" id="d-liq"></div>
+  <div class="cg cg2" style="margin-bottom:14px">
+    <div class="panel" style="margin-bottom:0"><div class="panel-head"><div class="panel-title">Receita x Gasto</div></div><div style="padding:14px"><div id="d-chart" class="bar-wrap"></div><div id="d-chart-lbl" style="display:flex;gap:4px;margin-top:2px;"></div></div></div>
+    <div class="panel" style="margin-bottom:0"><div class="panel-head"><div class="panel-title">Distribui&ccedil;&atilde;o Receita</div></div><div style="padding:14px" id="d-dist"></div></div>
+  </div>
+</div>
+
+<!-- ALERTAS -->
+<div class="page" id="page-alertas">
+  <div class="topbar"><div><div class="pg-title">Alertas</div><div class="pg-sub">Vencimentos e pend&ecirc;ncias</div></div></div>
+  <div class="fil" style="margin-bottom:12px">
+    <button class="fb on" onclick="filAlerta('todos',this)">Todos</button>
+    <button class="fb" onclick="filAlerta('vencendo',this)">Vencendo</button>
+    <button class="fb" onclick="filAlerta('vencidos',this)">Vencidos</button>
+    <button class="fb" onclick="filAlerta('pendentes',this)">Pendentes</button>
+  </div>
+  <div class="panel"><div class="card-list" id="lista-alertas"></div></div>
+</div>
+
+<!-- LETZ -->
+<div class="page" id="page-letz">
+  <div class="topbar">
+    <div><div class="pg-title">Letz Academia</div></div>
+    <div class="top-acts">
+      <button class="btn btn-ghost btn-sm" onclick="openModal('m-receita-extra')">+ Receita</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('m-letz-aluno')">+ Aluno</button>
+    </div>
+  </div>
+
+  <!-- Cards resumo -->
+  <div class="cg cg2" id="letz-resumo-cards"></div>
+
+  <!-- Alunos -->
+  <div class="sec-t">Alunos</div>
+  <div class="panel" style="margin-bottom:10px">
+    <div class="panel-head">
+      <div class="fil">
+        <button class="fb on" onclick="filLetz('todos',this)">Todos</button>
+        <button class="fb" onclick="filLetz('ativos',this)">Ativos</button>
+        <button class="fb" onclick="filLetz('vencendo',this)">Vencendo</button>
+        <button class="fb" onclick="filLetz('vencidos',this)">Vencidos</button>
+        <button class="fb" onclick="filLetz('inativos',this)">Inativos</button>
+      </div>
+    </div>
+    <div style="padding:10px 15px 4px">
+      <div class="sbox"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="search-letz" placeholder="Buscar aluno..." oninput="renderLetzAlunos()"></div>
+    </div>
+    <div class="card-list" id="lista-letz"></div>
+  </div>
+
+  <!-- Receitas -->
+  <div class="sec-t">Receitas</div>
+  <div class="cg cg3" id="letz-rec-cards"></div>
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Pagamentos de Alunos</div>
+      <button class="btn btn-ghost btn-sm" onclick="openModal('m-letz-pgto')">+ Registrar</button>
+    </div>
+    <div class="card-list" id="lista-letz-pgtos"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Receitas Vari&aacute;veis</div></div>
+    <div class="card-list" id="lista-letz-extras"></div>
+  </div>
+
+  <!-- Gastos -->
+  <div class="sec-t">Gastos</div>
+  <div class="cg cg3" id="letz-gas-cards"></div>
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Todos os Gastos</div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('m-gasto','letz')">+ Gasto</button>
+    </div>
+    <div class="card-list" id="lista-letz-gastos"></div>
+  </div>
+</div>
+
+<!-- CONSULTORIA -->
+<div class="page" id="page-consultoria">
+  <div class="topbar">
+    <div><div class="pg-title">Consultoria Online</div></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('m-consult-cliente')">+ Cliente</button>
+  </div>
+
+  <div class="cg cg3" id="consult-resumo-cards"></div>
+
+  <!-- Clientes -->
+  <div class="sec-t">Clientes</div>
+  <div class="panel" style="margin-bottom:10px">
+    <div class="panel-head">
+      <div class="fil">
+        <button class="fb on" onclick="filConsult('todos',this)">Todos</button>
+        <button class="fb" onclick="filConsult('acompanhamento',this)">Acomp.</button>
+        <button class="fb" onclick="filConsult('planilha',this)">Planilha</button>
+        <button class="fb" onclick="filConsult('inativos',this)">Inativos</button>
+      </div>
+    </div>
+    <div class="card-list" id="lista-consult"></div>
+  </div>
+
+  <!-- Gastos -->
+  <div class="sec-t">Gastos</div>
+  <div class="cg cg3" id="consult-gas-cards"></div>
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Todos os Gastos</div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('m-gasto','consult')">+ Gasto</button>
+    </div>
+    <div class="card-list" id="lista-consult-gastos"></div>
+  </div>
+</div>
+
+<!-- AVALIA&Ccedil;&Atilde;O -->
+<div class="page" id="page-avaliacao">
+  <div class="topbar">
+    <div><div class="pg-title">Avalia&ccedil;&atilde;o Cl&iacute;nica</div></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('m-aval-sessao')">+ Sess&atilde;o</button>
+  </div>
+
+  <div class="cg cg3" id="aval-resumo-cards"></div>
+
+  <!-- Sess&otilde;es -->
+  <div class="sec-t">Sess&otilde;es</div>
+  <div class="panel" style="margin-bottom:10px">
+    <div class="panel-head">
+      <div class="fil">
+        <button class="fb on" onclick="filAval('todos',this)">Todas</button>
+        <button class="fb" onclick="filAval('presencial',this)">Presencial</button>
+        <button class="fb" onclick="filAval('online',this)">Online</button>
+        <button class="fb" onclick="filAval('pendente',this)">Pendentes</button>
+      </div>
+    </div>
+    <div class="card-list" id="lista-aval"></div>
+  </div>
+
+  <!-- Gastos -->
+  <div class="sec-t">Gastos</div>
+  <div class="cg cg3" id="aval-gas-cards"></div>
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Todos os Gastos</div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('m-gasto','aval')">+ Gasto</button>
+    </div>
+    <div class="card-list" id="lista-aval-gastos"></div>
+  </div>
+</div>
+
+<!-- PESSOAL -->
+<div class="page" id="page-pessoal">
+  <div class="topbar">
+    <div><div class="pg-title">Finan&ccedil;as Pessoais</div></div>
+    <div class="top-acts">
+      <button class="btn btn-ghost btn-sm" onclick="openModal('m-gasto','pessoal')">+ Gasto</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('m-receita-pessoal')">+ Receita</button>
+    </div>
+  </div>
+  <div class="cg cg2" id="pessoal-cards"></div>
+
+  <!-- Gastos -->
+  <div class="sec-t">Gastos</div>
+  <div class="cg cg3" id="pessoal-gas-cards"></div>
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Todos os Gastos</div></div>
+    <div class="card-list" id="lista-gastos-pessoais"></div>
+  </div>
+
+  <!-- Receitas -->
+  <div class="sec-t">Receitas</div>
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Receitas Pessoais</div></div>
+    <div class="card-list" id="lista-receitas-pessoais"></div>
+  </div>
+</div>
+
+<!-- MESES -->
+<div class="page" id="page-meses">
+  <div class="topbar"><div><div class="pg-title">Relat&oacute;rio Mensal</div><div class="pg-sub">M&ecirc;s atual aberto - scroll para ver anteriores</div></div></div>
+  <div id="meses-lista"></div>
+</div>
+
+<!-- CONFIG -->
+<div class="page" id="page-config">
+  <div class="topbar"><div><div class="pg-title">Configura&ccedil;&otilde;es</div></div></div>
+  <div class="sec-t">Planos Letz</div>
+  <div class="panel" style="padding:14px;margin-bottom:12px">
+    <div id="cfg-letz"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addPlan('letz')">+ Plano</button>
+  </div>
+  <div class="sec-t">Planos Consultoria</div>
+  <div class="panel" style="padding:14px;margin-bottom:12px">
+    <div id="cfg-consult"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addPlan('consult')">+ Plano</button>
+  </div>
+  <div class="sec-t">Valores Avalia&ccedil;&atilde;o</div>
+  <div class="panel" style="padding:14px;margin-bottom:12px">
+    <div class="fr2">
+      <div class="fg"><label class="fl">Presencial (R$)</label><input class="fi" id="cfg-av-p" type="number" value="180" onchange="cfg.avalP=+this.value"></div>
+      <div class="fg"><label class="fl">Online (R$)</label><input class="fi" id="cfg-av-o" type="number" value="120" onchange="cfg.avalO=+this.value"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="toast('Salvo!')">Salvar</button>
+  </div>
+  <div class="sec-t">Categorias de Gastos</div>
+  <div class="panel" style="padding:14px">
+    <div id="cfg-cats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px">
+      <input class="fi" id="nova-cat-inp" placeholder="Nova categoria..." style="flex:1">
+      <button class="btn btn-primary btn-sm" onclick="adicionarCat()">+</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- MODAIS -->
+
+<!-- Letz: Novo Aluno -->
+<div class="overlay" id="m-letz-aluno">
+  <div class="modal">
+    <div class="modal-h"></div>
+    <div class="mt">Novo Aluno - Letz</div><div class="ms">Preencha os dados do aluno</div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Nome</label><input class="fi" id="la-nome" placeholder="Nome completo"></div>
+      <div class="fg"><label class="fl">Telefone</label><input class="fi" id="la-tel" placeholder="(81) 9xxxx-xxxx"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Plano</label><select class="fi" id="la-plano" onchange="autoVal('la-valor','letz',this.value)"></select></div>
+      <div class="fg"><label class="fl">Valor <small style="color:var(--muted)">(edit&aacute;vel)</small></label><input class="fi" id="la-valor" type="number"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Data in&iacute;cio</label><input class="fi" id="la-inicio" type="date"></div>
+      <div class="fg"><label class="fl">Pgto</label><select class="fi" id="la-pgto"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-letz-aluno')">Cancelar</button><button class="btn btn-primary" onclick="salvarAlunoLetz()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- Letz: Pgto -->
+<div class="overlay" id="m-letz-pgto">
+  <div class="modal">
+    <div class="modal-h"></div>
+    <div class="mt">Registrar Pagamento</div>
+    <div class="fg"><label class="fl">Aluno</label><select class="fi" id="lp-aluno"></select></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Valor (R$)</label><input class="fi" id="lp-valor" type="number"></div>
+      <div class="fg"><label class="fl">Data</label><input class="fi" id="lp-data" type="date"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">M&eacute;todo</label><select class="fi" id="lp-metodo"><option>PIX</option><option>Cart&atilde;o de Cr&eacute;dito</option><option>Dinheiro</option><option>Transfer&ecirc;ncia</option></select></div>
+      <div class="fg"><label class="fl">M&ecirc;s ref.</label><input class="fi" id="lp-mes" placeholder="Ex: Mar&ccedil;o/26"></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-letz-pgto')">Cancelar</button><button class="btn btn-primary" onclick="salvarPgtoLetz()">Registrar</button></div>
+  </div>
+</div>
+
+<!-- Letz: Editar Aluno -->
+<div class="overlay" id="m-editar-aluno">
+  <div class="modal">
+    <div class="modal-h"></div>
+    <div class="mt">Editar Aluno</div><div class="ms">Altere os dados do aluno</div>
+    <input type="hidden" id="ea-id">
+    <div class="fr2">
+      <div class="fg"><label class="fl">Nome</label><input class="fi" id="ea-nome"></div>
+      <div class="fg"><label class="fl">Telefone</label><input class="fi" id="ea-tel"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Plano</label><select class="fi" id="ea-plano" onchange="autoVal('ea-valor','letz',this.value)"></select></div>
+      <div class="fg"><label class="fl">Valor <small style="color:var(--muted)">(edit&aacute;vel)</small></label><input class="fi" id="ea-valor" type="number"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Data in&iacute;cio</label><input class="fi" id="ea-inicio" type="date"></div>
+      <div class="fg"><label class="fl">Data vencimento</label><input class="fi" id="ea-venc" type="date"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Status Pgto</label><select class="fi" id="ea-pgto"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>
+      <div></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-editar-aluno')">Cancelar</button><button class="btn btn-primary" onclick="salvarEdicaoAluno()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- Consultoria: Editar Cliente -->
+<div class="overlay" id="m-editar-cliente">
+  <div class="modal">
+    <div class="modal-h"></div>
+    <div class="mt">Editar Cliente</div><div class="ms">Altere os dados do cliente</div>
+    <input type="hidden" id="ec-id">
+    <div class="fr2">
+      <div class="fg"><label class="fl">Nome</label><input class="fi" id="ec-nome"></div>
+      <div class="fg"><label class="fl">Telefone</label><input class="fi" id="ec-tel"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Plano</label><select class="fi" id="ec-plano" onchange="autoVal('ec-valor','consult',this.value)"></select></div>
+      <div class="fg"><label class="fl">Valor <small style="color:var(--muted)">(edit&aacute;vel)</small></label><input class="fi" id="ec-valor" type="number"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Data in&iacute;cio</label><input class="fi" id="ec-inicio" type="date"></div>
+      <div class="fg"><label class="fl">Data vencimento</label><input class="fi" id="ec-venc" type="date"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Status Pgto</label><select class="fi" id="ec-pgto"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>
+      <div></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-editar-cliente')">Cancelar</button><button class="btn btn-primary" onclick="salvarEdicaoCliente()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- Letz: Receita extra -->
+<div class="overlay" id="m-receita-extra">
+  <div class="modal">
+    <div class="modal-h"></div>
+    <div class="mt">Receita Vari&aacute;vel - Letz</div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Tipo</label><select class="fi" id="re-tipo"><option>Marketing</option><option>Prescri&ccedil;&atilde;o</option><option>Outro</option></select></div>
+      <div class="fg"><label class="fl">Descri&ccedil;&atilde;o</label><input class="fi" id="re-desc" placeholder="Detalhe (opcional)"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Valor (R$)</label><input class="fi" id="re-valor" type="number"></div>
+      <div class="fg"><label class="fl">Data</label><input class="fi" id="re-data" type="date"></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-receita-extra')">Cancelar</button><button class="btn btn-primary" onclick="salvarReceitaExtra()">Adicionar</button></div>
+  </div>
+</div>
+
+<!-- Consultoria: Novo Cliente -->
+<div class="overlay" id="m-consult-cliente">
+  <div class="modal">
+    <div class="modal-h"></div>
+    <div class="mt">Novo Cliente - Consultoria</div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Nome</label><input class="fi" id="cc-nome" placeholder="Nome do cliente"></div>
+      <div class="fg"><label class="fl">Telefone</label><input class="fi" id="cc-tel" placeholder="(81) 9xxxx-xxxx"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Plano</label><select class="fi" id="cc-plano" onchange="autoVal('cc-valor','consult',this.value)"></select></div>
+      <div class="fg"><label class="fl">Valor <small style="color:var(--muted)">(edit&aacute;vel)</small></label><input class="fi" id="cc-valor" type="number"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Data in&iacute;cio</label><input class="fi" id="cc-inicio" type="date"></div>
+      <div class="fg"><label class="fl">Pgto</label><select class="fi" id="cc-pgto"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-consult-cliente')">Cancelar</button><button class="btn btn-primary" onclick="salvarClienteConsult()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- Avalia&ccedil;&atilde;o: Nova Sess&atilde;o -->
+<div class="overlay" id="m-aval-sessao">
+  <div class="modal">
+    <div class="modal-h"></div>
+    <div class="mt">Nova Sess&atilde;o - Avalia&ccedil;&atilde;o</div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Cliente</label><input class="fi" id="as-nome" placeholder="Nome"></div>
+      <div class="fg"><label class="fl">Tipo</label><select class="fi" id="as-tipo" onchange="document.getElementById('as-valor').value=this.value==='presencial'?cfg.avalP:cfg.avalO"><option value="presencial">Presencial</option><option value="online">Online</option></select></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Valor <small style="color:var(--muted)">(edit&aacute;vel)</small></label><input class="fi" id="as-valor" type="number"></div>
+      <div class="fg"><label class="fl">Data</label><input class="fi" id="as-data" type="date"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Pgto</label><select class="fi" id="as-pgto"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>
+      <div class="fg"><label class="fl">M&eacute;todo</label><select class="fi" id="as-metodo"><option>PIX</option><option>Cart&atilde;o de Cr&eacute;dito</option><option>Dinheiro</option></select></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-aval-sessao')">Cancelar</button><button class="btn btn-primary" onclick="salvarSessaoAval()">Registrar</button></div>
+  </div>
+</div>
+
+<!-- Gasto din&acirc;mico -->
+<div class="overlay" id="m-gasto"><div class="modal" id="mc-gasto"></div></div>
+
+<!-- Receita Pessoal -->
+<div class="overlay" id="m-receita-pessoal">
+  <div class="modal">
+    <div class="modal-h"></div>
+    <div class="mt">Nova Receita Pessoal</div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Descri&ccedil;&atilde;o</label><input class="fi" id="rp-desc" placeholder="Ex: Pr&oacute;-labore"></div>
+      <div class="fg"><label class="fl">Valor (R$)</label><input class="fi" id="rp-valor" type="number"></div>
+    </div>
+    <div class="fg"><label class="fl">Data</label><input class="fi" id="rp-data" type="date"></div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-receita-pessoal')">Cancelar</button><button class="btn btn-primary" onclick="salvarReceitaPessoal()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Delete -->
+<div class="overlay" id="m-confirmar">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-h"></div>
+    <div class="mt">Confirmar exclusao</div>
+    <div class="ms" id="m-confirmar-msg">Deseja remover este item permanentemente?</div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeModal('m-confirmar')">Cancelar</button>
+      <button class="btn btn-danger" id="m-confirmar-btn">Remover</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast-el"></div>
+
+</div><!-- /app -->
+
+</body>
+
+<script>
+/* SUPABASE */
+const _sb = supabase.createClient(
+  'https://xsmxfllymdbtbgfcdmpz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzbXhmbGx5bWRidGJnZmNkbXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0ODMwMjcsImV4cCI6MjA5MDA1OTAyN30.OmwLfwigaG4FmSPtkFtgqdURJDmN65NUfH8VJmM909c'
+);
+let CURRENT_USER = null;
+
+function showLogin(msg){
+  document.getElementById('app').style.display='none';
+  const ls=document.getElementById('login-screen');
+  ls.style.display='flex';ls.style.flexDirection='column';ls.style.alignItems='center';ls.style.justifyContent='center';
+  if(msg){const el=document.getElementById('login-msg');if(el)el.textContent=msg;}
+}
+function showApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+}
+async function doLogin(){
+  const pass=document.getElementById('li-pass').value;
+  const email='admin@eufinance.app';
+  const btn=document.getElementById('li-btn');
+  const msg=document.getElementById('login-msg');
+  if(btn)btn.disabled=true;
+  showLoading(true);
+  const{data,error}=await _sb.auth.signInWithPassword({email,password:pass});
+  showLoading(false);
+  if(btn)btn.disabled=false;
+  if(error){if(msg)msg.textContent='Senha incorreta.';return;}
+  CURRENT_USER=data.user;
+  showApp();
+  await loadAllData();
+}
+function doLogout(){
+  _sb.auth.signOut();
+  S.letzAlunos=[];S.letzPgtos=[];S.letzExtras=[];S.letzGastos=[];
+  S.consultClientes=[];S.consultGastos=[];
+  S.avalSessoes=[];S.avalGastos=[];
+  S.gastosPessoais=[];S.receitasPessoais=[];
+  showLogin();
+}
+function showLoading(on){const b=document.getElementById('loading-bar');if(b)b.style.display=on?'block':'none';}
+
+/* DB helpers */
+async function dbInsert(table,row){
+  const{data,error}=await _sb.from(table).insert({...row,user_id:CURRENT_USER.id}).select().single();
+  if(error){toast('Erro ao salvar: '+error.message,'(!)');return null;}
+  return data;
+}
+async function dbUpdate(table,id,row){
+  const{error}=await _sb.from(table).update(row).eq('id',id);
+  if(error){toast('Erro ao atualizar: '+error.message,'(!)');return false;}
+  return true;
+}
+async function dbDelete(table,id){
+  const{error}=await _sb.from(table).delete().eq('id',id);
+  if(error){toast('Erro ao deletar: '+error.message,'(!)');return false;}
+  return true;
+}
+
+/* Carrega todos os dados do banco */
+async function loadAllData(){
+  showLoading(true);
+  const uid=CURRENT_USER.id;
+  const[alunos,pgtos,extras,lGastos,clientes,cGastos,sessoes,aGastos,pGastos,pReceitas,cfgRow]=await Promise.all([
+    _sb.from('letz_alunos').select('*').eq('user_id',uid).order('created_at'),
+    _sb.from('letz_pagamentos').select('*').eq('user_id',uid).order('data',{ascending:false}),
+    _sb.from('letz_receitas_extras').select('*').eq('user_id',uid).order('data',{ascending:false}),
+    _sb.from('letz_gastos').select('*').eq('user_id',uid).order('data',{ascending:false}),
+    _sb.from('consult_clientes').select('*').eq('user_id',uid).order('created_at'),
+    _sb.from('consult_gastos').select('*').eq('user_id',uid).order('data',{ascending:false}),
+    _sb.from('aval_sessoes').select('*').eq('user_id',uid).order('data',{ascending:false}),
+    _sb.from('aval_gastos').select('*').eq('user_id',uid).order('data',{ascending:false}),
+    _sb.from('pessoal_gastos').select('*').eq('user_id',uid).order('data',{ascending:false}),
+    _sb.from('pessoal_receitas').select('*').eq('user_id',uid).order('data',{ascending:false}),
+    _sb.from('config').select('*').eq('user_id',uid).maybeSingle(),
+  ]);
+  S.letzAlunos=(alunos.data||[]).map(rowToAluno);
+  S.letzPgtos=(pgtos.data||[]).map(rowToPgto);
+  S.letzExtras=(extras.data||[]).map(rowToExtra);
+  S.letzGastos=(lGastos.data||[]).map(rowToGasto);
+  S.consultClientes=(clientes.data||[]).map(rowToCliente);
+  S.consultGastos=(cGastos.data||[]).map(rowToGasto);
+  S.avalSessoes=(sessoes.data||[]).map(rowToSessao);
+  S.avalGastos=(aGastos.data||[]).map(rowToGasto);
+  S.gastosPessoais=(pGastos.data||[]).map(rowToGasto);
+  S.receitasPessoais=(pReceitas.data||[]).map(rowToReceita);
+  if(cfgRow.data){
+    cfg.avalP=cfgRow.data.aval_p;
+    cfg.avalO=cfgRow.data.aval_o;
+    if(cfgRow.data.letz_plans?.length) cfg.letzPlans=cfgRow.data.letz_plans;
+    if(cfgRow.data.consult_plans?.length) cfg.consultPlans=cfgRow.data.consult_plans;
+    if(cfgRow.data.cats?.length) cfg.cats=cfgRow.data.cats;
+  }
+  showLoading(false);
+  checkRenovacoes();
+  updateBadge();
+  renderDashboard();
+}
+
+/* Salva config no banco */
+async function saveConfig(){
+  const uid=CURRENT_USER.id;
+  const{error}=await _sb.from('config').upsert({user_id:uid,aval_p:cfg.avalP,aval_o:cfg.avalO,letz_plans:cfg.letzPlans,consult_plans:cfg.consultPlans,cats:cfg.cats},{onConflict:'user_id'});
+  if(error)toast('Erro ao salvar config: '+error.message,'(!)');
+  else toast('Configuracoes salvas!');
+}
+
+/* Converters */
+function rowToAluno(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#3b82f6'};}
+function rowToCliente(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#06b6d4'};}
+function rowToPgto(r){return{id:r.id,alunoNome:r.aluno_nome||r.alunoNome,mes:r.mes,valor:+r.valor,data:r.data,metodo:r.metodo};}
+function rowToExtra(r){return{id:r.id,tipo:r.tipo,desc:r.descricao||r.desc||'',valor:+r.valor,data:r.data};}
+function rowToGasto(r){return{id:r.id,desc:r.descricao||r.desc,cat:r.categoria||r.cat||'Outros',tipo:r.tipo||'variavel',metodo:r.metodo||'PIX',parcelas:r.parcelas||1,valorTotal:+(r.valor_total||r.valorTotal),data:r.data};}
+function rowToSessao(r){return{id:r.id,nome:r.nome,tipo:r.tipo,data:r.data,valor:+r.valor,pgto:r.pgto,metodo:r.metodo};}
+function rowToReceita(r){return{id:r.id,desc:r.descricao||r.desc,valor:+r.valor,data:r.data};}
+
+/* CONFIG & STATE */
+const cfg={
+  avalP:180,avalO:120,
+  letzPlans:[
+    {id:'mensal',nome:'Mensal',valor:200,dias:30},
+    {id:'trimestral',nome:'Trimestral',valor:540,dias:90},
+    {id:'semestral',nome:'Semestral',valor:1000,dias:180},
+    {id:'anual',nome:'Anual',valor:1800,dias:365},
+  ],
+  consultPlans:[
+    {id:'acompanhamento',nome:'Acompanhamento Mensal',valor:200,dias:30},
+    {id:'planilha',nome:'Planilha de Treino',valor:300,dias:null},
+    {id:'planilha+suporte',nome:'Planilha + Suporte',valor:250,dias:null},
+  ],
+  cats:['Moradia','Alimentacao','Transporte','Saude','Lazer','Educacao','Marketing','Equipamento','Software','Outros'],
+};
+
+const TODAY=new Date('2026-03-25');
+const TODAY_STR='2026-03-25';
+const CORES=['#3b82f6','#8b5cf6','#10b981','#f59e0b','#06b6d4','#ef4444','#ec4899','#84cc16'];
+const MESES_NOMES=['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+const S={
+  letzAlunos:[],
+  letzPgtos:[],
+  letzExtras:[],
+  letzGastos:[],
+  consultClientes:[],
+  consultGastos:[],
+  avalSessoes:[],
+  avalGastos:[],
+  gastosPessoais:[],
+  receitasPessoais:[],
+  filLetz:'todos',filConsult:'todos',filAval:'todos',filAlerta:'todos',
+  _gastoArea:null,
+};
+
+/* UTILS */
+const fmt=v=>'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const dias=v=>v?Math.ceil((new Date(v)-TODAY)/86400000):null;
+const rndCor=()=>CORES[Math.floor(Math.random()*CORES.length)];
+const planNome=(plans,id)=>plans.find(p=>p.id===id)?.nome||id;
+
+function diasB(d,inativo){
+  if(inativo)return'<span style="padding:2px 8px;border-radius:8px;font-size:11px;background:var(--grdim);color:var(--muted2)">Inativo</span>';
+  if(d===null)return'<span class="badge bp">Unico</span>';
+  if(d<0)return`<span class="dbad">${Math.abs(d)}d vencido</span>`;
+  if(d<=7)return`<span class="dwarn">${d}d</span>`;
+  return`<span class="dok">${d}d restantes</span>`;
+}
+
+/* Status real: se pgto='pago' E ainda esta dentro da vigencia Pago. Se venceu, mesmo com pgto='pago' Pendente (nova vigencia a pagar). */
+function statusReal(item){
+  if(!item.ativo) return 'inativo';
+  // planos  nicos (sem venc) = sempre pago se marcado
+  if(!item.venc) return item.pgto;
+  const d = dias(item.venc);
+  // dentro do per odo pago   Pago
+  if(item.pgto==='pago' && d > 0) return 'pago';
+  // venceu   Pendente (independente de como estava marcado)
+  if(d <= 0) return 'pendente';
+  return item.pgto;
+}
+function pgtoB(s){
+  if(s==='pago')return'<span class="badge bg">Pago</span>';
+  if(s==='pendente')return'<span class="badge by">Pendente</span>';
+  if(s==='inativo')return'<span style="padding:2px 8px;border-radius:8px;font-size:11px;background:var(--grdim);color:var(--muted2)">Inativo</span>';
+  return'<span class="badge br">Atrasado</span>';
+}
+
+/* Retorna HTML com info do proximo pagamento */
+function proximoPagamentoInfo(item, plans){
+  if(!item.ativo || !item.venc) return '';
+  const plan = plans.find(p=>p.id===item.plano);
+  const d = dias(item.venc);
+  const st = statusReal(item);
+  // formata data br
+  const fmtDate = s => { const [y,m,dd]=s.split('-'); return`${dd}/${m}/${y}`; };
+  if(st==='pago'){
+    return`<span style="font-size:11px;color:var(--muted)">Prox. pgto: <strong style="color:var(--muted2)">${fmtDate(item.venc)}</strong></span>`;
+  }
+  if(st==='pendente' && d<=0){
+    return`<span style="font-size:11px;color:var(--yellow)">(!) Venceu em ${fmtDate(item.venc)}</span>`;
+  }
+  if(d<=7){
+    return`<span style="font-size:11px;color:var(--yellow)">Vence em ${fmtDate(item.venc)}</span>`;
+  }
+  return`<span style="font-size:11px;color:var(--muted)">Vence: ${fmtDate(item.venc)}</span>`;
+}
+function avEl(nome,cor){return`<div class="av" style="background:${cor}22;color:${cor}">${nome.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>`;}
+function chipEl(nome,sub,cor){return`<div class="chip">${avEl(nome,cor)}<div><div class="cn">${nome}</div>${sub?`<div class="cs">${sub}</div>`:''}</div></div>`;}
+
+function parcelaVal(g){return g.parcelas>1?g.valorTotal/g.parcelas:g.valorTotal;}
+function parcelaRest(g){if(g.parcelas<=1)return null;const m=Math.floor((TODAY-new Date(g.data))/(30*86400000));return Math.max(0,g.parcelas-m);}
+function parcelaB(g){
+  if(g.parcelas<=1)return'<span style="color:var(--muted);font-size:12px">A vista</span>';
+  const r=parcelaRest(g);
+  return`<span class="pb">${r}/${g.parcelas} restam</span>`;
+}
+
+/* NAV */
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('[data-p]').forEach(n=>n.classList.toggle('active',n.dataset.p===page));
+  ({
+    dashboard:renderDashboard,
+    alertas:renderAlertas,
+    letz:renderLetz,
+    consultoria:renderConsultoria,
+    avaliacao:renderAvaliacao,
+    pessoal:renderPessoal,
+    meses:renderMeses,
+    config:renderConfig,
+  }[page]||(() => {}))();
+  window.scrollTo(0,0);
+}
+
+/* MODAL */
+function openModal(id,area){
+  if(id==='m-gasto'){S._gastoArea=area;buildGastoModal(area);}
+  document.getElementById(id).classList.add('open');
+  ['la-inicio','lp-data','cc-inicio','as-data','rp-data','re-data'].forEach(fid=>{const el=document.getElementById(fid);if(el&&!el.value)el.value=TODAY_STR;});
+  if(id==='m-letz-aluno'){popSel('la-plano','letz');autoVal('la-valor','letz',document.getElementById('la-plano')?.value);document.getElementById('la-inicio').value=TODAY_STR;}
+  if(id==='m-consult-cliente'){popSel('cc-plano','consult');autoVal('cc-valor','consult',document.getElementById('cc-plano')?.value);document.getElementById('cc-inicio').value=TODAY_STR;}
+  if(id==='m-letz-pgto'){document.getElementById('lp-aluno').innerHTML=S.letzAlunos.filter(a=>a.ativo).map(a=>`<option value="${a.id}">${a.nome}</option>`).join('');}
+  if(id==='m-aval-sessao'){document.getElementById('as-valor').value=cfg.avalP;document.getElementById('as-data').value=TODAY_STR;}
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+
+function popSel(selId,area){
+  const plans=area==='letz'?cfg.letzPlans:cfg.consultPlans;
+  const sel=document.getElementById(selId);if(!sel)return;
+  sel.innerHTML=plans.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+}
+function autoVal(valId,area,planId){
+  const plans=area==='letz'?cfg.letzPlans:cfg.consultPlans;
+  const plan=plans.find(p=>p.id===planId);
+  const el=document.getElementById(valId);if(el&&plan)el.value=plan.valor;
+}
+
+function buildGastoModal(area){
+  const labels={letz:'Letz Academia',consult:'Consultoria',aval:'Avaliacao Clinica',pessoal:'Pessoal'};
+  const catOpts=cfg.cats.map(c=>`<option>${c}</option>`).join('');
+  const tipoField=area==='pessoal'?`<div class="fg"><label class="fl">Tipo</label><select class="fi" id="gm-tipo"><option value="fixo">Fixo</option><option value="variavel">Variavel</option></select></div>`:'<div></div>';
+  document.getElementById('mc-gasto').innerHTML=`
+    <div class="modal-h"></div>
+    <div class="mt">Novo Gasto - ${labels[area]||area}</div><div class="ms">Registre uma despesa</div>
+    <div class="fg"><label class="fl">Descricao</label><input class="fi" id="gm-desc" placeholder="Ex: Aluguel, plataforma..."></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Categoria <button onclick="novaCatInline()" style="background:none;border:none;cursor:pointer;color:var(--blue2);font-size:11px;padding:0 4px">+ nova</button></label><select class="fi" id="gm-cat">${catOpts}</select></div>
+      ${tipoField}
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Valor Total (R$)</label><input class="fi" id="gm-valor" type="number" placeholder="0,00" oninput="prevParc()"></div>
+      <div class="fg"><label class="fl">Metodo de Pgto</label><select class="fi" id="gm-metodo"><option>PIX</option><option>Cartao de Credito</option><option>Cartao de Debito</option><option>Dinheiro</option><option>Transferencia</option><option>Boleto</option></select></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Parcelado em</label><select class="fi" id="gm-parc" onchange="prevParc()"><option value="1">A vista</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="8">8x</option><option value="10">10x</option><option value="12">12x</option><option value="18">18x</option><option value="24">24x</option></select></div>
+      <div class="fg"><label class="fl">Data</label><input class="fi" id="gm-data" type="date" value="${TODAY_STR}"></div>
+    </div>
+    <div class="parc-prev" id="parc-prev"></div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-gasto')">Cancelar</button><button class="btn btn-primary" onclick="salvarGasto()">Salvar</button></div>`;
+}
+function prevParc(){
+  const n=+document.getElementById('gm-parc')?.value||1;
+  const v=+document.getElementById('gm-valor')?.value||0;
+  const el=document.getElementById('parc-prev');if(!el)return;
+  if(n>1&&v>0){el.style.display='block';el.innerHTML=` ${n} de <strong>${fmt(v/n)}</strong> - Total ${fmt(v)}`;}
+  else el.style.display='none';
+}
+function novaCatInline(){
+  const nome=prompt('Nome da nova categoria:');
+  if(nome&&!cfg.cats.includes(nome)){cfg.cats.push(nome);const sel=document.getElementById('gm-cat');if(sel){const o=document.createElement('option');o.textContent=nome;sel.appendChild(o);sel.value=nome;}renderConfig();}
+}
+
+/* TOAST */
+function toast(msg,icon='(ok)'){const t=document.getElementById('toast-el');t.innerHTML=`<span>${icon}</span> ${msg}`;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+/* AUTO RENOVACAO */
+function autoRenovar(item,plans){
+  if(!item.ativo)return;
+  const plan=plans.find(p=>p.id===item.plano);
+  if(!plan?.dias)return;
+  const d=dias(item.venc);
+  if(d!==null&&d<0){
+    const base=new Date(TODAY);
+    base.setDate(base.getDate()+plan.dias);
+    item.venc=base.toISOString().split('T')[0];
+    item.pgto='pendente';
+  }
+}
+function checkRenovacoes(){
+  S.letzAlunos.forEach(a=>autoRenovar(a,cfg.letzPlans));
+  S.consultClientes.forEach(c=>autoRenovar(c,cfg.consultPlans));
+}
+
+/* BADGE */
+function updateBadge(){
+  checkRenovacoes();
+  let n=0;
+  S.letzAlunos.filter(a=>a.ativo).forEach(a=>{const d=dias(a.venc);const st=statusReal(a);if(st==='pendente'||(d!==null&&d<=7&&st==='pago'))n++;});
+  S.consultClientes.filter(c=>c.ativo).forEach(c=>{const d=c.venc?dias(c.venc):null;const st=statusReal(c);if(st==='pendente'||(d!==null&&d<=7&&st==='pago'))n++;});
+  n+=S.avalSessoes.filter(a=>a.pgto==='pendente').length;
+  document.getElementById('nb-badge').textContent=n;
+  const sb=document.getElementById('sb-badge');if(sb)sb.textContent=n;
+  const dn=document.getElementById('d-n');if(dn)dn.textContent=n>0?`(${n})`:'';
+}
+
+/* SALVAR */
+async function salvarAlunoLetz(){
+  const nome=document.getElementById('la-nome').value.trim();if(!nome){toast('Preencha o nome','(!)');return;}
+  const plano=document.getElementById('la-plano').value;
+  const valor=+document.getElementById('la-valor').value;
+  const inicio=document.getElementById('la-inicio').value;
+  const plan=cfg.letzPlans.find(p=>p.id===plano);
+  const v=new Date(inicio);v.setDate(v.getDate()+(plan?.dias||30));
+  const venc=v.toISOString().split('T')[0];
+  const cor=rndCor();
+  const row=await dbInsert('letz_alunos',{nome,tel:document.getElementById('la-tel').value,plano,valor,inicio,venc,pgto:document.getElementById('la-pgto').value,ativo:true,cor});
+  if(!row)return;
+  S.letzAlunos.push(rowToAluno(row));
+  closeModal('m-letz-aluno');['la-nome','la-tel'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  toast(`${nome} cadastrado!`);renderLetz();updateBadge();
+}
+async function salvarPgtoLetz(){
+  const alunoId=document.getElementById('lp-aluno').value;
+  const aluno=S.letzAlunos.find(a=>a.id===alunoId);
+  const valor=+document.getElementById('lp-valor').value;if(!valor){toast('Informe o valor','(!)');return;}
+  await dbUpdate('letz_alunos',alunoId,{pgto:'pago'});
+  aluno.pgto='pago';
+  const row=await dbInsert('letz_pagamentos',{aluno_id:alunoId,aluno_nome:aluno.nome,mes:document.getElementById('lp-mes').value||'-',valor,data:document.getElementById('lp-data').value,metodo:document.getElementById('lp-metodo').value});
+  if(row) S.letzPgtos.unshift(rowToPgto(row));
+  closeModal('m-letz-pgto');toast(`Pgto de ${aluno.nome} registrado!`);renderLetz();updateBadge();
+}
+async function salvarReceitaExtra(){
+  const valor=+document.getElementById('re-valor').value;if(!valor){toast('Informe o valor','(!)');return;}
+  const row=await dbInsert('letz_receitas_extras',{tipo:document.getElementById('re-tipo').value,descricao:document.getElementById('re-desc').value,valor,data:document.getElementById('re-data').value});
+  if(row) S.letzExtras.unshift(rowToExtra(row));
+  closeModal('m-receita-extra');toast('Receita adicionada!');renderLetz();
+}
+async function salvarGasto(){
+  const desc=document.getElementById('gm-desc')?.value.trim();
+  const valor=+document.getElementById('gm-valor')?.value;
+  if(!desc||!valor){toast('Preencha todos os campos','(!)');return;}
+  const area=S._gastoArea;
+  const tableMap={letz:'letz_gastos',consult:'consult_gastos',aval:'aval_gastos',pessoal:'pessoal_gastos'};
+  const payload={descricao:desc,categoria:document.getElementById('gm-cat')?.value||'Outros',tipo:document.getElementById('gm-tipo')?.value||'variavel',metodo:document.getElementById('gm-metodo')?.value||'PIX',parcelas:+document.getElementById('gm-parc')?.value||1,valor_total:valor,data:document.getElementById('gm-data')?.value||TODAY_STR};
+  const row=await dbInsert(tableMap[area],payload);
+  if(!row)return;
+  const g=rowToGasto(row);
+  if(area==='letz')S.letzGastos.unshift(g);
+  else if(area==='consult')S.consultGastos.unshift(g);
+  else if(area==='aval')S.avalGastos.unshift(g);
+  else if(area==='pessoal')S.gastosPessoais.unshift(g);
+  closeModal('m-gasto');toast('Gasto registrado!');
+  if(area==='pessoal')renderPessoal();
+  else if(area==='letz')renderLetz();
+  else if(area==='consult')renderConsultoria();
+  else if(area==='aval')renderAvaliacao();
+}
+async function salvarClienteConsult(){
+  const nome=document.getElementById('cc-nome').value.trim();if(!nome){toast('Preencha o nome','(!)');return;}
+  const plano=document.getElementById('cc-plano').value;
+  const valor=+document.getElementById('cc-valor').value;
+  const inicio=document.getElementById('cc-inicio').value;
+  const plan=cfg.consultPlans.find(p=>p.id===plano);
+  let venc=null;if(plan?.dias){const v=new Date(inicio);v.setDate(v.getDate()+plan.dias);venc=v.toISOString().split('T')[0];}
+  const row=await dbInsert('consult_clientes',{nome,tel:document.getElementById('cc-tel').value,plano,valor,inicio,venc,pgto:document.getElementById('cc-pgto').value,ativo:true,cor:rndCor()});
+  if(!row)return;
+  S.consultClientes.push(rowToCliente(row));
+  closeModal('m-consult-cliente');['cc-nome','cc-tel'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  toast(`${nome} cadastrado!`);renderConsultoria();updateBadge();
+}
+
+/* EDITAR ALUNO */
+function editarAluno(id){
+  const a=S.letzAlunos.find(x=>x.id===id);if(!a)return;
+  popSel('ea-plano','letz');
+  document.getElementById('ea-id').value=a.id;
+  document.getElementById('ea-nome').value=a.nome;
+  document.getElementById('ea-tel').value=a.tel||'';
+  document.getElementById('ea-plano').value=a.plano;
+  document.getElementById('ea-valor').value=a.valor;
+  document.getElementById('ea-inicio').value=a.inicio||'';
+  document.getElementById('ea-venc').value=a.venc||'';
+  document.getElementById('ea-pgto').value=a.pgto;
+  document.getElementById('m-editar-aluno').classList.add('open');
+}
+async function salvarEdicaoAluno(){
+  const id=document.getElementById('ea-id').value;
+  const a=S.letzAlunos.find(x=>x.id===id);if(!a)return;
+  const novoPlano=document.getElementById('ea-plano').value;
+  const novoInicio=document.getElementById('ea-inicio').value;
+  let novoVenc=document.getElementById('ea-venc').value;
+  if((novoPlano!==a.plano||novoInicio!==a.inicio)&&novoInicio){
+    const plan=cfg.letzPlans.find(p=>p.id===novoPlano);
+    if(plan?.dias){const v=new Date(novoInicio);v.setDate(v.getDate()+plan.dias);novoVenc=v.toISOString().split('T')[0];}
+  }
+  const updates={nome:document.getElementById('ea-nome').value.trim()||a.nome,tel:document.getElementById('ea-tel').value,plano:novoPlano,valor:+document.getElementById('ea-valor').value||a.valor,inicio:novoInicio,venc:novoVenc,pgto:document.getElementById('ea-pgto').value};
+  await dbUpdate('letz_alunos',id,updates);
+  Object.assign(a,updates);
+  closeModal('m-editar-aluno');
+  toast(`${a.nome} atualizado! (edit)`);renderLetz();updateBadge();
+}
+
+/* EDITAR CLIENTE */
+function editarCliente(id){
+  const c=S.consultClientes.find(x=>x.id===id);if(!c)return;
+  popSel('ec-plano','consult');
+  document.getElementById('ec-id').value=c.id;
+  document.getElementById('ec-nome').value=c.nome;
+  document.getElementById('ec-tel').value=c.tel||'';
+  document.getElementById('ec-plano').value=c.plano;
+  document.getElementById('ec-valor').value=c.valor;
+  document.getElementById('ec-inicio').value=c.inicio||'';
+  document.getElementById('ec-venc').value=c.venc||'';
+  document.getElementById('ec-pgto').value=c.pgto;
+  document.getElementById('m-editar-cliente').classList.add('open');
+}
+async function salvarEdicaoCliente(){
+  const id=document.getElementById('ec-id').value;
+  const c=S.consultClientes.find(x=>x.id===id);if(!c)return;
+  const novoPlano=document.getElementById('ec-plano').value;
+  const novoInicio=document.getElementById('ec-inicio').value;
+  let novoVenc=document.getElementById('ec-venc').value||null;
+  if((novoPlano!==c.plano||novoInicio!==c.inicio)&&novoInicio){
+    const plan=cfg.consultPlans.find(p=>p.id===novoPlano);
+    if(plan?.dias){const v=new Date(novoInicio);v.setDate(v.getDate()+plan.dias);novoVenc=v.toISOString().split('T')[0];}
+    else novoVenc=null;
+  }
+  const updates={nome:document.getElementById('ec-nome').value.trim()||c.nome,tel:document.getElementById('ec-tel').value,plano:novoPlano,valor:+document.getElementById('ec-valor').value||c.valor,inicio:novoInicio,venc:novoVenc,pgto:document.getElementById('ec-pgto').value};
+  await dbUpdate('consult_clientes',id,updates);
+  Object.assign(c,updates);
+  closeModal('m-editar-cliente');
+  toast(`${c.nome} atualizado! (edit)`);renderConsultoria();updateBadge();
+}
+
+async function salvarSessaoAval(){
+  const nome=document.getElementById('as-nome').value.trim();if(!nome){toast('Preencha o nome','(!)');return;}
+  const pgto=document.getElementById('as-pgto').value;
+  const row=await dbInsert('aval_sessoes',{nome,tipo:document.getElementById('as-tipo').value,data:document.getElementById('as-data').value,valor:+document.getElementById('as-valor').value,pgto,metodo:pgto==='pago'?document.getElementById('as-metodo').value:null});
+  if(!row)return;
+  S.avalSessoes.unshift(rowToSessao(row));
+  closeModal('m-aval-sessao');document.getElementById('as-nome').value='';
+  toast('Sessao registrada!');renderAvaliacao();
+}
+async function salvarReceitaPessoal(){
+  const desc=document.getElementById('rp-desc').value.trim();
+  const valor=+document.getElementById('rp-valor').value;
+  if(!desc||!valor){toast('Preencha todos os campos','(!)');return;}
+  const row=await dbInsert('pessoal_receitas',{descricao:desc,valor,data:document.getElementById('rp-data').value});
+  if(!row)return;
+  S.receitasPessoais.unshift(rowToReceita(row));
+  closeModal('m-receita-pessoal');toast('Receita registrada!');renderPessoal();
+}
+function adicionarCat(){
+  const el=document.getElementById('nova-cat-inp');const nome=el?.value.trim();if(!nome)return;
+  if(!cfg.cats.includes(nome))cfg.cats.push(nome);el.value='';renderConfig();toast(`"${nome}" criada!`);
+}
+
+/* AC?ES */
+async function marcarPago(area,id){
+  const tableMap={letz:'letz_alunos',consult:'consult_clientes',aval:'aval_sessoes'};
+  await dbUpdate(tableMap[area],id,{pgto:'pago'});
+  const maps={letz:S.letzAlunos,consult:S.consultClientes,aval:S.avalSessoes};
+  const item=maps[area]?.find(x=>x.id===id);if(item)item.pgto='pago';
+  toast('Pagamento confirmado! (ok)');
+  ({letz:renderLetz,consult:renderConsultoria,aval:renderAvaliacao}[area]||(() => {}))();
+  updateBadge();
+}
+async function toggleInativo(area,id){
+  const maps={letz:S.letzAlunos,consult:S.consultClientes};
+  const item=maps[area]?.find(x=>x.id===id);if(!item)return;
+  item.ativo=!item.ativo;
+  const tableMap={letz:'letz_alunos',consult:'consult_clientes'};
+  await dbUpdate(tableMap[area],id,{ativo:item.ativo});
+  toast(item.ativo?`${item.nome} reativado (ok)`:`${item.nome} inativado`);
+  ({letz:renderLetz,consult:renderConsultoria}[area]||(() => {}))();
+  updateBadge();
+}
+function remover(area,id){
+  const m=document.getElementById('m-confirmar');
+  const btn=document.getElementById('m-confirmar-btn');
+  m.classList.add('open');
+  // remove previous listener
+  const newBtn=btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn,btn);
+  newBtn.onclick=()=>{
+    closeModal('m-confirmar');
+    _removerConfirmado(area,id);
+  };
+}
+async function _removerConfirmado(area,id){
+  const tableMap={letz:'letz_alunos',consult:'consult_clientes',aval:'aval_sessoes',lg:'letz_gastos',cg:'consult_gastos',ag:'aval_gastos',pg:'pessoal_gastos',pr:'pessoal_receitas',lp:'letz_pagamentos',le:'letz_receitas_extras'};
+  const stateMap={letz:'letzAlunos',consult:'consultClientes',aval:'avalSessoes',lg:'letzGastos',cg:'consultGastos',ag:'avalGastos',pg:'gastosPessoais',pr:'receitasPessoais',lp:'letzPgtos',le:'letzExtras'};
+  await dbDelete(tableMap[area],id);
+  if(stateMap[area]) S[stateMap[area]]=S[stateMap[area]].filter(x=>x.id!==id);
+  toast('Removido','(del)');
+  ({letz:renderLetz,consult:renderConsultoria,aval:renderAvaliacao,lg:renderLetz,cg:renderConsultoria,ag:renderAvaliacao,pg:renderPessoal,pr:renderPessoal,lp:renderLetz,le:renderLetz}[area]||(() => {}))();
+  updateBadge();
+}
+
+/* FILTERS */
+function filLetz(f,btn){S.filLetz=f;document.querySelectorAll('#page-letz .panel .fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderLetzAlunos();}
+function filConsult(f,btn){S.filConsult=f;document.querySelectorAll('#page-consultoria .panel .fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderConsultLista();}
+function filAval(f,btn){S.filAval=f;document.querySelectorAll('#page-avaliacao .panel .fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderAvalLista();}
+function filAlerta(f,btn){S.filAlerta=f;document.querySelectorAll('#page-alertas .fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderAlertas();}
+
+/* RENDER: LETZ (tudo numa pagina) */
+function renderLetz(){
+  renderLetzAlunos();
+  renderLetzCards();
+  renderLetzPgtosLista();
+  renderLetzExtrasLista();
+  renderLetzGastosCards();
+  renderLetzGastosLista();
+}
+function renderLetzCards(){
+  const ativos=S.letzAlunos.filter(a=>a.ativo).length;
+  const pendentes=S.letzAlunos.filter(a=>a.ativo&&a.pgto==='pendente').length;
+  const el=document.getElementById('letz-resumo-cards');
+  if(el)el.innerHTML=`
+    <div class="sc" style="--ac:var(--blue)"><div class="sc-lbl">Alunos Ativos</div><div class="sc-val">${ativos}</div></div>
+    <div class="sc" style="--ac:var(--yellow)"><div class="sc-lbl">Pgtos Pendentes</div><div class="sc-val">${pendentes}</div></div>`;
+}
+function renderLetzAlunos(){
+  const q=(document.getElementById('search-letz')?.value||'').toLowerCase();
+  let list=S.letzAlunos.filter(a=>!q||a.nome.toLowerCase().includes(q));
+  if(S.filLetz==='ativos')list=list.filter(a=>a.ativo&&dias(a.venc)>7);
+  if(S.filLetz==='vencendo')list=list.filter(a=>a.ativo&&((d=>d>=0&&d<=7)(dias(a.venc))));
+  if(S.filLetz==='vencidos')list=list.filter(a=>a.ativo&&dias(a.venc)<0);
+  if(S.filLetz==='inativos')list=list.filter(a=>!a.ativo);
+  const el=document.getElementById('lista-letz');if(!el)return;
+  el.innerHTML=list.map(a=>{
+    const st=statusReal(a);
+    const d=dias(a.venc);
+    return`
+    <div class="ci${a.ativo?'':' inativo'}">
+      <div class="ci-top">
+        ${chipEl(a.nome,a.tel,a.cor)}
+        <span class="badge bb" style="font-size:10px">${planNome(cfg.letzPlans,a.plano)}</span>
+      </div>
+      <div class="ci-bot">
+        <div class="ci-meta">
+          ${diasB(d,!a.ativo)}
+          ${pgtoB(st)}
+          <span style="font-weight:600;color:var(--white)">${fmt(a.valor)}</span>
+        </div>
+        <div class="ci-acts">
+          ${a.ativo&&st==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('letz',${a.id})">Pago</button>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="editarAluno(${a.id})">(edit)</button>
+          <button class="btn ${a.ativo?'btn-gray':'btn-ghost'} btn-sm" onclick="toggleInativo('letz',${a.id})">${a.ativo?'Inativar':'Ativar'}</button>
+          <button class="btn btn-danger btn-sm" onclick="remover('letz',${a.id})">x</button>
+        </div>
+      </div>
+      ${a.ativo?`<div>${proximoPagamentoInfo(a,cfg.letzPlans)}</div>`:''}
+    </div>`}).join('')||'<div style="text-align:center;padding:24px;color:var(--muted)">Nenhum aluno</div>';
+}
+function renderLetzCards(){
+  const pgtos=S.letzPgtos.reduce((s,p)=>s+p.valor,0);
+  const extras=S.letzExtras.reduce((s,e)=>s+e.valor,0);
+  const el=document.getElementById('letz-rec-cards');
+  if(el)el.innerHTML=`
+    <div class="sc" style="--ac:var(--green)"><div class="sc-lbl">Pgtos Alunos</div><div class="sc-val">${fmt(pgtos)}</div></div>
+    <div class="sc" style="--ac:var(--purple)"><div class="sc-lbl">Receitas Variaveis</div><div class="sc-val">${fmt(extras)}</div></div>
+    <div class="sc" style="--ac:var(--blue)"><div class="sc-lbl">Total Receitas</div><div class="sc-val">${fmt(pgtos+extras)}</div></div>`;
+  // resumo
+  const ativos=S.letzAlunos.filter(a=>a.ativo).length;
+  const pendentes=S.letzAlunos.filter(a=>a.ativo&&a.pgto==='pendente').length;
+  const rc=document.getElementById('letz-resumo-cards');
+  if(rc)rc.innerHTML=`<div class="sc" style="--ac:var(--blue)"><div class="sc-lbl">Alunos Ativos</div><div class="sc-val">${ativos}</div></div><div class="sc" style="--ac:var(--yellow)"><div class="sc-lbl">Pgtos Pendentes</div><div class="sc-val">${pendentes}</div></div>`;
+}
+function renderLetzPgtosLista(){
+  const el=document.getElementById('lista-letz-pgtos');if(!el)return;
+  el.innerHTML=S.letzPgtos.map(p=>`
+    <div class="ci">
+      <div class="ci-top">
+        <span style="font-weight:500;color:var(--white)">${p.alunoNome}</span>
+        <span style="color:var(--green);font-weight:600">${fmt(p.valor)}</span>
+      </div>
+      <div class="ci-bot">
+        <div class="ci-meta">
+          <span style="font-size:11px;color:var(--muted)">${p.mes}</span>
+          <span style="font-size:11px;color:var(--muted2)">${p.metodo}</span>
+          <span style="font-size:11px;color:var(--muted)">${p.data}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="remover('lp',${p.id})">x</button>
+      </div>
+    </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum pagamento</div>';
+}
+function renderLetzExtrasLista(){
+  const el=document.getElementById('lista-letz-extras');if(!el)return;
+  el.innerHTML=S.letzExtras.map(e=>`
+    <div class="ci">
+      <div class="ci-top">
+        <div><span class="badge bp">${e.tipo}</span> <span style="font-size:12px;color:var(--muted2)">${e.desc||''}</span></div>
+        <span style="color:var(--green);font-weight:600">${fmt(e.valor)}</span>
+      </div>
+      <div class="ci-bot">
+        <span style="font-size:11px;color:var(--muted)">${e.data}</span>
+        <button class="btn btn-danger btn-sm" onclick="remover('le',${e.id})">x</button>
+      </div>
+    </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhuma receita variavel</div>';
+}
+function renderLetzGastosCards(){
+  const gas=S.letzGastos.reduce((s,g)=>s+parcelaVal(g),0);
+  const el=document.getElementById('letz-gas-cards');
+  if(el)el.innerHTML=`
+    <div class="sc" style="--ac:var(--red)"><div class="sc-lbl">Total (soma)</div><div class="sc-val">${fmt(S.letzGastos.reduce((s,g)=>s+g.valorTotal,0))}</div></div>
+    <div class="sc" style="--ac:var(--yellow)"><div class="sc-lbl">Custo Mensal</div><div class="sc-val">${fmt(gas)}</div></div>
+    <div class="sc" style="--ac:var(--purple)"><div class="sc-lbl">Parcelados</div><div class="sc-val">${S.letzGastos.filter(g=>g.parcelas>1).length}</div></div>`;
+}
+function renderLetzGastosLista(){
+  const el=document.getElementById('lista-letz-gastos');if(!el)return;
+  el.innerHTML=S.letzGastos.map(g=>`
+    <div class="ci">
+      <div class="ci-top">
+        <span style="font-weight:500;color:var(--white)">${g.desc}</span>
+        <div style="text-align:right">
+          <div style="color:var(--yellow);font-weight:600">${fmt(parcelaVal(g))}<span style="font-size:10px;color:var(--muted)">/mes</span></div>
+          ${g.parcelas>1?`<div style="font-size:10px;color:var(--muted)">Total ${fmt(g.valorTotal)}</div>`:''}
+        </div>
+      </div>
+      <div class="ci-bot">
+        <div class="ci-meta">
+          <span class="badge bx">${g.cat}</span>
+          <span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>
+          ${parcelaB(g)}
+          <span style="font-size:11px;color:var(--muted)">${g.data}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="remover('lg',${g.id})">x</button>
+      </div>
+    </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum gasto</div>';
+}
+
+/* RENDER: CONSULTORIA */
+function renderConsultoria(){
+  const rec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo).reduce((s,c)=>s+c.valor,0);
+  const gas=S.consultGastos.reduce((s,g)=>s+parcelaVal(g),0);
+  const el=document.getElementById('consult-resumo-cards');
+  if(el)el.innerHTML=`
+    <div class="sc" style="--ac:var(--cyan)"><div class="sc-lbl">Receita</div><div class="sc-val">${fmt(rec)}</div></div>
+    <div class="sc" style="--ac:var(--red)"><div class="sc-lbl">Gastos/Mes</div><div class="sc-val">${fmt(gas)}</div></div>
+    <div class="sc" style="--ac:${rec-gas>=0?'var(--green)':'var(--red)'}"><div class="sc-lbl">Liquido</div><div class="sc-val" style="color:${rec-gas>=0?'var(--green)':'var(--red)'}">${fmt(rec-gas)}</div></div>`;
+  renderConsultLista();
+  renderConsultGastos();
+}
+function renderConsultLista(){
+  let list=S.consultClientes;
+  if(S.filConsult==='acompanhamento')list=list.filter(c=>c.plano==='acompanhamento');
+  if(S.filConsult==='planilha')list=list.filter(c=>c.plano.startsWith('planilha'));
+  if(S.filConsult==='inativos')list=list.filter(c=>!c.ativo);
+  else if(S.filConsult==='todos'){}
+  const pbmap={acompanhamento:'bc',planilha:'bp','planilha+suporte':'bb'};
+  const el=document.getElementById('lista-consult');if(!el)return;
+  el.innerHTML=list.map(c=>{
+    const st=statusReal(c);
+    const d=c.venc?dias(c.venc):null;
+    return`
+    <div class="ci${c.ativo?'':' inativo'}">
+      <div class="ci-top">
+        ${chipEl(c.nome,c.tel,c.cor)}
+        <span class="badge ${pbmap[c.plano]||'bb'}" style="font-size:10px">${planNome(cfg.consultPlans,c.plano)}</span>
+      </div>
+      <div class="ci-bot">
+        <div class="ci-meta">
+          ${diasB(d,!c.ativo)}
+          ${pgtoB(st)}
+          <span style="font-weight:600;color:var(--white)">${fmt(c.valor)}</span>
+        </div>
+        <div class="ci-acts">
+          ${c.ativo&&st==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('consult',${c.id})">Pago</button>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="editarCliente(${c.id})">(edit)</button>
+          <button class="btn ${c.ativo?'btn-gray':'btn-ghost'} btn-sm" onclick="toggleInativo('consult',${c.id})">${c.ativo?'Inativar':'Ativar'}</button>
+          <button class="btn btn-danger btn-sm" onclick="remover('consult',${c.id})">x</button>
+        </div>
+      </div>
+      ${c.ativo?`<div>${proximoPagamentoInfo(c,cfg.consultPlans)}</div>`:''}
+    </div>`}).join('');
+}
+function renderConsultGastos(){
+  const gas=S.consultGastos.reduce((s,g)=>s+parcelaVal(g),0);
+  const el=document.getElementById('consult-gas-cards');
+  if(el)el.innerHTML=`
+    <div class="sc" style="--ac:var(--red)"><div class="sc-lbl">Total</div><div class="sc-val">${fmt(S.consultGastos.reduce((s,g)=>s+g.valorTotal,0))}</div></div>
+    <div class="sc" style="--ac:var(--yellow)"><div class="sc-lbl">Custo Mensal</div><div class="sc-val">${fmt(gas)}</div></div>
+    <div class="sc" style="--ac:var(--purple)"><div class="sc-lbl">Parcelados</div><div class="sc-val">${S.consultGastos.filter(g=>g.parcelas>1).length}</div></div>`;
+  const tbl=document.getElementById('lista-consult-gastos');
+  if(tbl)tbl.innerHTML=S.consultGastos.map(g=>`
+    <div class="ci">
+      <div class="ci-top"><span style="font-weight:500;color:var(--white)">${g.desc}</span>
+        <div style="text-align:right"><div style="color:var(--yellow);font-weight:600">${fmt(parcelaVal(g))}<span style="font-size:10px;color:var(--muted)">/mes</span></div>${g.parcelas>1?`<div style="font-size:10px;color:var(--muted)">Total ${fmt(g.valorTotal)}</div>`:''}</div>
+      </div>
+      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('cg',${g.id})">x</button></div>
+    </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum gasto</div>';
+}
+
+/* RENDER: AVALIACAO */
+function renderAvaliacao(){
+  const rec=S.avalSessoes.filter(a=>a.pgto==='pago').reduce((s,a)=>s+a.valor,0);
+  const gas=S.avalGastos.reduce((s,g)=>s+parcelaVal(g),0);
+  const pend=S.avalSessoes.filter(a=>a.pgto==='pendente').reduce((s,a)=>s+a.valor,0);
+  const el=document.getElementById('aval-resumo-cards');
+  if(el)el.innerHTML=`
+    <div class="sc" style="--ac:var(--green)"><div class="sc-lbl">Receita</div><div class="sc-val">${fmt(rec)}</div></div>
+    <div class="sc" style="--ac:var(--yellow)"><div class="sc-lbl">A Receber</div><div class="sc-val">${fmt(pend)}</div></div>
+    <div class="sc" style="--ac:var(--red)"><div class="sc-lbl">Gastos/Mes</div><div class="sc-val">${fmt(gas)}</div></div>`;
+  renderAvalLista();
+  renderAvalGastos();
+}
+function renderAvalLista(){
+  let list=S.avalSessoes;
+  if(S.filAval==='presencial')list=list.filter(a=>a.tipo==='presencial');
+  if(S.filAval==='online')list=list.filter(a=>a.tipo==='online');
+  if(S.filAval==='pendente')list=list.filter(a=>a.pgto==='pendente');
+  const el=document.getElementById('lista-aval');if(!el)return;
+  el.innerHTML=list.map(a=>`
+    <div class="ci">
+      <div class="ci-top">
+        <span style="font-weight:500;color:var(--white)">${a.nome}</span>
+        <span class="badge ${a.tipo==='presencial'?'bb':'bc'}">${a.tipo}</span>
+      </div>
+      <div class="ci-bot">
+        <div class="ci-meta">
+          <span style="font-size:12px;color:var(--muted)">${a.data}</span>
+          <span style="color:var(--green);font-weight:600">${fmt(a.valor)}</span>
+          ${pgtoB(a.pgto)}
+          ${a.metodo?`<span style="font-size:11px;color:var(--muted2)">${a.metodo}</span>`:''}
+        </div>
+        <div class="ci-acts">
+          ${a.pgto==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('aval',${a.id})">Pago</button>`:''}
+          <button class="btn btn-danger btn-sm" onclick="remover('aval',${a.id})">x</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function renderAvalGastos(){
+  const gas=S.avalGastos.reduce((s,g)=>s+parcelaVal(g),0);
+  const el=document.getElementById('aval-gas-cards');
+  if(el)el.innerHTML=`
+    <div class="sc" style="--ac:var(--red)"><div class="sc-lbl">Total</div><div class="sc-val">${fmt(S.avalGastos.reduce((s,g)=>s+g.valorTotal,0))}</div></div>
+    <div class="sc" style="--ac:var(--yellow)"><div class="sc-lbl">Custo Mensal</div><div class="sc-val">${fmt(gas)}</div></div>
+    <div class="sc" style="--ac:var(--purple)"><div class="sc-lbl">Parcelados</div><div class="sc-val">${S.avalGastos.filter(g=>g.parcelas>1).length}</div></div>`;
+  const tbl=document.getElementById('lista-aval-gastos');
+  if(tbl)tbl.innerHTML=S.avalGastos.map(g=>`
+    <div class="ci">
+      <div class="ci-top"><span style="font-weight:500;color:var(--white)">${g.desc}</span>
+        <div style="text-align:right"><div style="color:var(--yellow);font-weight:600">${fmt(parcelaVal(g))}<span style="font-size:10px;color:var(--muted)">/mes</span></div>${g.parcelas>1?`<div style="font-size:10px;color:var(--muted)">Total ${fmt(g.valorTotal)}</div>`:''}</div>
+      </div>
+      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('ag',${g.id})">x</button></div>
+    </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum gasto</div>';
+}
+
+/* RENDER: PESSOAL */
+function renderPessoal(){
+  const fixos=S.gastosPessoais.filter(g=>g.tipo==='fixo').reduce((s,g)=>s+parcelaVal(g),0);
+  const vars=S.gastosPessoais.filter(g=>g.tipo==='variavel').reduce((s,g)=>s+parcelaVal(g),0);
+  const rec=S.receitasPessoais.reduce((s,r)=>s+r.valor,0);
+  const saldo=rec-fixos-vars;
+  const pc=document.getElementById('pessoal-cards');
+  if(pc)pc.innerHTML=`
+    <div class="sc" style="--ac:var(--green)"><div class="sc-lbl">Receita</div><div class="sc-val">${fmt(rec)}</div></div>
+    <div class="sc" style="--ac:${saldo>=0?'var(--blue)':'var(--red)'}"><div class="sc-lbl">Saldo</div><div class="sc-val" style="color:${saldo>=0?'var(--green)':'var(--red)'}">${fmt(saldo)}</div></div>`;
+  const gc=document.getElementById('pessoal-gas-cards');
+  if(gc)gc.innerHTML=`
+    <div class="sc" style="--ac:var(--red)"><div class="sc-lbl">Fixos/Mes</div><div class="sc-val">${fmt(fixos)}</div></div>
+    <div class="sc" style="--ac:var(--yellow)"><div class="sc-lbl">Variaveis/Mes</div><div class="sc-val">${fmt(vars)}</div></div>
+    <div class="sc" style="--ac:var(--purple)"><div class="sc-lbl">Parcelados</div><div class="sc-val">${S.gastosPessoais.filter(g=>g.parcelas>1).length}</div></div>`;
+  const tg=document.getElementById('lista-gastos-pessoais');
+  if(tg)tg.innerHTML=S.gastosPessoais.map(g=>`
+    <div class="ci">
+      <div class="ci-top"><span style="font-weight:500;color:var(--white)">${g.desc}</span>
+        <div style="text-align:right"><div style="color:var(--yellow);font-weight:600">${fmt(parcelaVal(g))}<span style="font-size:10px;color:var(--muted)">/mes</span></div>${g.parcelas>1?`<div style="font-size:10px;color:var(--muted)">Total ${fmt(g.valorTotal)}</div>`:''}</div>
+      </div>
+      <div class="ci-bot"><div class="ci-meta"><span class="badge bx">${g.cat}</span><span class="badge ${g.tipo==='fixo'?'br':'by'}">${g.tipo}</span><span style="font-size:11px;color:var(--muted2)">${g.metodo}</span>${parcelaB(g)}</div><button class="btn btn-danger btn-sm" onclick="remover('pg',${g.id})">x</button></div>
+    </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum gasto</div>';
+  const tr=document.getElementById('lista-receitas-pessoais');
+  if(tr)tr.innerHTML=S.receitasPessoais.map(r=>`
+    <div class="ci">
+      <div class="ci-top"><span style="font-weight:500;color:var(--white)">${r.desc}</span><span style="color:var(--green);font-weight:600">${fmt(r.valor)}</span></div>
+      <div class="ci-bot"><span style="font-size:11px;color:var(--muted)">${r.data}</span><button class="btn btn-danger btn-sm" onclick="remover('pr',${r.id})">x</button></div>
+    </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhuma receita</div>';
+}
+
+/* RENDER: ALERTAS */
+function renderAlertas(){
+  let list=[];
+  S.letzAlunos.filter(a=>a.ativo).forEach(a=>{const d=dias(a.venc);const st=statusReal(a);if(st==='pendente'||(d!==null&&d<=7))list.push({nome:a.nome,area:'Letz',servico:planNome(cfg.letzPlans,a.plano),venc:a.venc,d,valor:a.valor,pgto:st,id:a.id,tipo:'letz'});});
+  S.consultClientes.filter(c=>c.ativo).forEach(c=>{const d=c.venc?dias(c.venc):null;const st=statusReal(c);if(st==='pendente'||(d!==null&&d<=7))list.push({nome:c.nome,area:'Consult.',servico:planNome(cfg.consultPlans,c.plano),venc:c.venc||'-',d,valor:c.valor,pgto:st,id:c.id,tipo:'consult'});});
+  S.avalSessoes.filter(a=>a.pgto==='pendente').forEach(a=>list.push({nome:a.nome,area:'Aval.',servico:a.tipo,venc:a.data,d:0,valor:a.valor,pgto:'pendente',id:a.id,tipo:'aval'}));
+  if(S.filAlerta==='vencendo')list=list.filter(a=>a.d!==null&&a.d>=0&&a.d<=7);
+  if(S.filAlerta==='vencidos')list=list.filter(a=>a.d!==null&&a.d<0);
+  if(S.filAlerta==='pendentes')list=list.filter(a=>a.pgto==='pendente');
+  const el=document.getElementById('lista-alertas');if(!el)return;
+  el.innerHTML=list.length?list.map(a=>`
+    <div class="ci">
+      <div class="ci-top"><span style="font-weight:500;color:var(--white)">${a.nome}</span><span style="font-size:11px;color:var(--muted)">${a.area}</span></div>
+      <div class="ci-bot">
+        <div class="ci-meta">${a.d!==null?diasB(a.d,false):''} ${pgtoB(a.pgto)} <span style="font-weight:600;color:var(--white)">${fmt(a.valor)}</span></div>
+        <div class="ci-acts">${a.pgto==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('${a.tipo}',${a.id})">Pago</button>`:''}</div>
+      </div>
+    </div>`).join(''):'<div style="text-align:center;padding:32px;color:var(--muted)"> Nenhum alerta!</div>';
+}
+
+/* RENDER: DASHBOARD */
+function renderDashboard(){
+  checkRenovacoes();
+  const letzRec=S.letzPgtos.reduce((s,p)=>s+p.valor,0)+S.letzExtras.reduce((s,e)=>s+e.valor,0);
+  const consultRec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo).reduce((s,c)=>s+c.valor,0);
+  const avalRec=S.avalSessoes.filter(a=>a.pgto==='pago').reduce((s,a)=>s+a.valor,0);
+  const pessoalRec=S.receitasPessoais.reduce((s,r)=>s+r.valor,0);
+  const letzGas=S.letzGastos.reduce((s,g)=>s+parcelaVal(g),0);
+  const consultGas=S.consultGastos.reduce((s,g)=>s+parcelaVal(g),0);
+  const avalGas=S.avalGastos.reduce((s,g)=>s+parcelaVal(g),0);
+  const pessoalGas=S.gastosPessoais.reduce((s,g)=>s+parcelaVal(g),0);
+
+  const n=+document.getElementById('nb-badge').textContent;
+  const aw=document.getElementById('d-banner');
+  if(aw)aw.innerHTML='';
+
+  function aRow(elId,recLabel,recVal,gasLabel,gasVal){
+    const el=document.getElementById(elId);if(!el)return;
+    el.innerHTML=`
+      <div class="sc" style="--ac:var(--green);border-color:rgba(34,197,94,.4)"><div class="sc-lbl">${recLabel}</div><div class="sc-val" style="color:var(--green)">${fmt(recVal)}</div></div>
+      <div class="sc" style="--ac:var(--red);border-color:rgba(239,68,68,.4)"><div class="sc-lbl">${gasLabel}</div><div class="sc-val" style="color:var(--red)">${fmt(gasVal)}</div></div>`;
+  }
+  aRow('d-letz','Receita Letz',letzRec,'Gastos Letz',letzGas);
+  aRow('d-consult','Receita Consult.',consultRec,'Gastos Consult.',consultGas);
+  aRow('d-aval','Receita Aval.',avalRec,'Gastos Aval.',avalGas);
+  aRow('d-pessoal','Receita Pessoal',pessoalRec,'Gastos Pessoal',pessoalGas);
+
+  const liqCard=(l,v)=>`<div class="sc" style="--ac:${v>=0?'var(--green)':'var(--red)'}"><div class="sc-lbl">${l}</div><div class="sc-val" style="color:${v>=0?'var(--green)':'var(--red)'}">${fmt(v)}</div></div>`;
+  const res=document.getElementById('d-liq');
+  if(res)res.innerHTML=liqCard('Liq. Letz',letzRec-letzGas)+liqCard('Liq. Consult.',consultRec-consultGas)+liqCard('Liq. Aval.',avalRec-avalGas)+liqCard(' Liq. Negocios',letzRec+consultRec+avalRec-letzGas-consultGas-avalGas);
+
+  const areas=[{l:'Letz',r:letzRec,g:letzGas},{l:'Consult.',r:consultRec,g:consultGas},{l:'Aval.',r:avalRec,g:avalGas}];
+  const maxV=Math.max(...areas.map(a=>Math.max(a.r,a.g)),1);
+  const ch=document.getElementById('d-chart');const cl=document.getElementById('d-chart-lbl');
+  if(ch)ch.innerHTML=areas.flatMap(a=>[
+    `<div class="bar-col"><div class="bar" style="height:${Math.round(a.r/maxV*66)}px;background:var(--s2);border:1px solid var(--border)"><span class="bar-v">${fmt(a.r)}</span></div><div class="bar-lbl" style="color:var(--up);font-size:7px"></div></div>`,
+    `<div class="bar-col"><div class="bar" style="height:${Math.round(a.g/maxV*66)}px;background:var(--s2);border:1px solid var(--border)"><span class="bar-v">${fmt(a.g)}</span></div><div class="bar-lbl" style="color:var(--down);font-size:7px"></div></div>`,
+  ]).join('');
+  if(cl)cl.innerHTML=areas.map(a=>`<div style="flex:2;text-align:center;font-size:8px;color:var(--muted)">${a.l}</div>`).join('');
+
+  const totalRec=Math.max(letzRec+consultRec+avalRec,1);
+  const dr=document.getElementById('d-dist');
+  if(dr)dr.innerHTML=[{l:'Letz',v:letzRec},{l:'Consult.',v:consultRec},{l:'Aval.',v:avalRec}].map(r=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--muted2)">${r.l}</span><span style="color:var(--white);font-weight:500">${fmt(r.v)}</span></div>
+      <div class="prog"><div class="prog-bar" style="width:${Math.round(r.v/totalRec*100)}%"></div></div>
+    </div>`).join('');
+}
+
+/* RENDER: MESES */
+function getMesData(ano, mes) {
+  // mes = 0-11
+  const mesStr = (m) => `${ano}-${String(m+1).padStart(2,'0')}`;
+  const inMes = (data, a, m) => data && data.startsWith(mesStr(m));
+  const gastoAtivoParcela = (g, a, m) => {
+    if(!inMes(g.data,a,0)&&g.parcelas>1){
+      // verifica se esse m s est  dentro do per odo de parcelas
+      const ini = new Date(g.data);
+      const inicio = new Date(ini.getFullYear(), ini.getMonth(), 1);
+      const alvo = new Date(a, m, 1);
+      const diff = Math.floor((alvo - inicio) / (30*24*3600*1000));
+      return diff >= 0 && diff < g.parcelas;
+    }
+    return inMes(g.data,a,m);
+  };
+
+  // Letz receitas nesse m s
+  const letzPgtosMes = S.letzPgtos.filter(p=>inMes(p.data,ano,mes));
+  const letzExtrasMes = S.letzExtras.filter(e=>inMes(e.data,ano,mes));
+  const letzRec = [...letzPgtosMes.map(p=>({desc:p.alunoNome,sub:`Pgto aluno  ${p.metodo}`,val:p.valor,tipo:'receita'})),
+                   ...letzExtrasMes.map(e=>({desc:e.tipo,sub:e.desc||'',val:e.valor,tipo:'receita'}))];
+  const letzGasMes = S.letzGastos.filter(g=>gastoAtivoParcela(g,ano,mes));
+  const letzGas = letzGasMes.map(g=>({desc:g.desc,sub:`${g.cat}  ${g.metodo}`,val:parcelaVal(g),valTotal:g.parcelas>1?g.valorTotal:null,parc:g.parcelas>1?parcelaB(g):null,tipo:'gasto'}));
+
+  // Consult receitas
+  const consultRecMes = S.consultClientes.filter(c=>c.pgto==='pago'&&inMes(c.inicio,ano,mes));
+  const consultRec = consultRecMes.map(c=>({desc:c.nome,sub:planNome(cfg.consultPlans,c.plano),val:c.valor,tipo:'receita'}));
+  const consultGasMes = S.consultGastos.filter(g=>gastoAtivoParcela(g,ano,mes));
+  const consultGas = consultGasMes.map(g=>({desc:g.desc,sub:`${g.cat}  ${g.metodo}`,val:parcelaVal(g),valTotal:g.parcelas>1?g.valorTotal:null,parc:g.parcelas>1?parcelaB(g):null,tipo:'gasto'}));
+
+  // Aval receitas
+  const avalSessoesMes = S.avalSessoes.filter(a=>inMes(a.data,ano,mes)&&a.pgto==='pago');
+  const avalRec = avalSessoesMes.map(a=>({desc:a.nome,sub:`${a.tipo}  ${a.metodo||'-'}`,val:a.valor,tipo:'receita'}));
+  const avalGasMes = S.avalGastos.filter(g=>gastoAtivoParcela(g,ano,mes));
+  const avalGas = avalGasMes.map(g=>({desc:g.desc,sub:`${g.cat}  ${g.metodo}`,val:parcelaVal(g),valTotal:g.parcelas>1?g.valorTotal:null,parc:g.parcelas>1?parcelaB(g):null,tipo:'gasto'}));
+
+  // Pessoal
+  const pessoalRecMes = S.receitasPessoais.filter(r=>inMes(r.data,ano,mes));
+  const pessoalRec = pessoalRecMes.map(r=>({desc:r.desc,sub:'',val:r.valor,tipo:'receita'}));
+  const pessoalGasMes = S.gastosPessoais.filter(g=>gastoAtivoParcela(g,ano,mes));
+  const pessoalGas = pessoalGasMes.map(g=>({desc:g.desc,sub:`${g.cat}  ${g.tipo}  ${g.metodo}`,val:parcelaVal(g),valTotal:g.parcelas>1?g.valorTotal:null,parc:g.parcelas>1?parcelaB(g):null,tipo:'gasto'}));
+
+  const sum = arr => arr.reduce((s,x)=>s+x.val,0);
+  return {
+    areas:[
+      {id:'letz',nome:'Letz Academia',rec:letzRec,gas:letzGas},
+      {id:'consult',nome:'Consultoria Online',rec:consultRec,gas:consultGas},
+      {id:'aval',nome:'Avaliacao Clinica',rec:avalRec,gas:avalGas},
+      {id:'pessoal',nome:'Financas Pessoais',rec:pessoalRec,gas:pessoalGas},
+    ],
+    totalRec: sum(letzRec)+sum(consultRec)+sum(avalRec)+sum(pessoalRec),
+    totalGas: sum(letzGas)+sum(consultGas)+sum(avalGas)+sum(pessoalGas),
+  };
+}
+
+function txItem(tx){
+  return`<div class="tx-item">
+    <div><div class="tx-desc">${tx.desc}</div>${tx.sub?`<div class="tx-cat">${tx.sub}</div>`:''}</div>
+    <div class="tx-val-wrap">
+      <div class="tx-val" style="color:${tx.tipo==='receita'?'var(--green)':'var(--red)'}">${tx.tipo==='receita'?'+':''}${fmt(tx.val)}</div>
+      ${tx.valTotal?`<div class="tx-total">Total ${fmt(tx.valTotal)} ${tx.parc||''}</div>`:''}
+    </div>
+  </div>`;
+}
+
+function renderMeses(){
+  const el=document.getElementById('meses-lista');if(!el)return;
+  // gera os  ltimos 12 meses de hoje para tr s
+  const mesesList=[];
+  for(let i=0;i<12;i++){
+    const d=new Date(TODAY.getFullYear(),TODAY.getMonth()-i,1);
+    mesesList.push({ano:d.getFullYear(),mes:d.getMonth()});
+  }
+  const atualAno=TODAY.getFullYear(),atualMes=TODAY.getMonth();
+
+  el.innerHTML=mesesList.map(({ano,mes},idx)=>{
+    const data=getMesData(ano,mes);
+    const sumRec=a=>a.rec.reduce((s,x)=>s+x.val,0);
+    const sumGas=a=>a.gas.reduce((s,x)=>s+x.val,0);
+    const liq=data.totalRec-data.totalGas;
+    const isAtual=ano===atualAno&&mes===atualMes;
+    const bid=`mes-${ano}-${mes}`;
+
+    const areasHTML=data.areas.map(area=>{
+      const r=area.rec.reduce((s,x)=>s+x.val,0);
+      const g=area.gas.reduce((s,x)=>s+x.val,0);
+      const l=r-g;
+      const txs=[...area.rec,...area.gas].sort((a,b)=>a.tipo===b.tipo?0:a.tipo==='receita'?-1:1);
+      return`<div class="area-bloco">
+        <div class="area-bloco-head">
+          <div class="area-bloco-title">${area.emoji} ${area.nome}</div>
+          <div class="area-stats">
+            <span class="area-rec">+${fmt(r)}</span>
+            <span class="area-gas">${fmt(g)}</span>
+            <span class="area-liq" style="color:${l>=0?'var(--green)':'var(--red)'}">=${fmt(l)}</span>
+          </div>
+        </div>
+        ${txs.length?txs.map(tx=>txItem(tx)).join(''):`<div class="tx-empty">Nenhuma movimentacao</div>`}
+      </div>`;
+    }).join('');
+
+    return`<div class="mes-bloco">
+      <div class="mes-header" onclick="toggleMes('${bid}')">
+        <div class="mes-header-info">
+          <div class="mes-nome">${MESES_NOMES[mes]} ${ano}</div>
+          ${isAtual?'<span class="mes-atual-tag">Atual</span>':''}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="mes-resumo">
+            <span class="mes-r">+${fmt(data.totalRec)}</span>
+            <span class="mes-g">${fmt(data.totalGas)}</span>
+            <span class="mes-liq" style="color:${liq>=0?'var(--green)':'var(--red)'}">=${fmt(liq)}</span>
+          </div>
+          <span class="mes-chevron${isAtual?' open':''}" id="chev-${bid}">v</span>
+        </div>
+      </div>
+      <div class="mes-body${isAtual?' open':''}" id="${bid}">
+        ${areasHTML}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleMes(id){
+  const body=document.getElementById(id);
+  const chev=document.getElementById('chev-'+id);
+  if(!body)return;
+  const open=body.classList.toggle('open');
+  if(chev)chev.classList.toggle('open',open);
+}
+
+/* RENDER: CONFIG */
+function renderConfig(){
+  const lp=document.getElementById('cfg-letz');
+  if(lp)lp.innerHTML=cfg.letzPlans.map((p,i)=>`<div class="plan-item"><input value="${p.nome}" style="flex:2" onchange="cfg.letzPlans[${i}].nome=this.value"><div class="psep"></div><span style="font-size:11px;color:var(--muted)">R$</span><input type="number" value="${p.valor}" style="width:65px;text-align:right" onchange="cfg.letzPlans[${i}].valor=+this.value"><button onclick="cfg.letzPlans.splice(${i},1);renderConfig()" style="background:none;border:none;color:var(--red);cursor:pointer;margin-left:auto;font-size:14px">x</button></div>`).join('');
+  const cp=document.getElementById('cfg-consult');
+  if(cp)cp.innerHTML=cfg.consultPlans.map((p,i)=>`<div class="plan-item"><input value="${p.nome}" style="flex:2" onchange="cfg.consultPlans[${i}].nome=this.value"><div class="psep"></div><span style="font-size:11px;color:var(--muted)">R$</span><input type="number" value="${p.valor}" style="width:65px;text-align:right" onchange="cfg.consultPlans[${i}].valor=+this.value"><button onclick="cfg.consultPlans.splice(${i},1);renderConfig()" style="background:none;border:none;color:var(--red);cursor:pointer;margin-left:auto;font-size:14px">x</button></div>`).join('');
+  const ce=document.getElementById('cfg-cats');
+  if(ce)ce.innerHTML=cfg.cats.map(c=>`<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:var(--s3);border:1px solid var(--border);font-size:12px">${c}<button onclick="cfg.cats=cfg.cats.filter(x=>x!=='${c}');renderConfig()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px">x</button></span>`).join('');
+}
+function addPlan(area){
+  if(area==='letz')cfg.letzPlans.push({id:'p'+Date.now(),nome:'Novo Plano',valor:0,dias:30});
+  else cfg.consultPlans.push({id:'p'+Date.now(),nome:'Novo Plano',valor:0,dias:null});
+  renderConfig();
+  saveConfig();
+}
+
+/* INIT - verifica sessao ativa */
+document.getElementById('app').style.display='none';
+document.getElementById('login-screen').style.display='flex';
+(async()=>{
+  const{data:{session}}=await _sb.auth.getSession();
+  if(session){
+    CURRENT_USER=session.user;
+    showApp();
+    await loadAllData();
+  }
+})();
+</script>
+</html>
