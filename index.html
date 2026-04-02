@@ -224,11 +224,19 @@ select.fi{cursor:pointer;}
 .tx-empty{padding:10px 14px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);}
 
 /* chart bars (dashboard) */
-.bar-wrap{display:flex;align-items:flex-end;gap:4px;height:70px;}
-.bar-col{display:flex;flex-direction:column;align-items:center;flex:1;}
-.bar{width:100%;border-radius:3px 3px 0 0;position:relative;min-height:2px;}
-.bar-v{font-size:8px;position:absolute;top:-13px;left:50%;transform:translateX(-50%);white-space:nowrap;color:var(--muted);}
-.bar-lbl{font-size:8px;color:var(--muted);margin-top:4px;text-align:center;}
+.bar-wrap{display:flex;align-items:stretch;gap:6px;height:140px;position:relative;}
+.bar-wrap-zero{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--border);z-index:1;}
+.bar-col{display:flex;flex-direction:column;align-items:center;flex:1;justify-content:center;position:relative;}
+.bar-col-inner{width:100%;display:flex;flex-direction:column;align-items:center;height:50%;}
+.bar-col-inner.up{justify-content:flex-end;}
+.bar-col-inner.down{justify-content:flex-start;}
+.bar{width:85%;border-radius:3px;position:relative;min-height:2px;}
+.bar.up{border-radius:3px 3px 0 0;}
+.bar.down{border-radius:0 0 3px 3px;}
+.bar-v{font-size:8px;position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;}
+.bar-v.up{top:-13px;}
+.bar-v.down{bottom:-13px;}
+.bar-lbl{font-size:8px;color:var(--muted);margin-top:4px;text-align:center;position:absolute;bottom:-22px;width:100%;}
 
 </style>
 </head>
@@ -317,7 +325,7 @@ select.fi{cursor:pointer;}
   </div>
   <div class="nav-sec">
     <div class="nav-lbl">M&oacute;dulos</div>
-    <div class="nav-item" onclick="go('letz')" data-p="letz"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Letz Academia</div>
+    <div class="nav-item" onclick="go('letz')" data-p="letz"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Letz Assessoria</div>
     <div class="nav-item" onclick="go('consultoria')" data-p="consultoria"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Consultoria Online</div>
     <div class="nav-item" onclick="go('avaliacao')" data-p="avaliacao"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Avalia&ccedil;&atilde;o Cl&iacute;nica</div>
     <div class="nav-item" onclick="go('pessoal')" data-p="pessoal"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>Finan&ccedil;as Pessoais</div>
@@ -342,7 +350,7 @@ select.fi{cursor:pointer;}
     <button class="btn btn-ghost btn-sm" onclick="go('alertas')">Alertas <span id="d-n"></span></button>
   </div>
   <div id="d-banner"></div>
-  <div class="sec-t">Letz Academia</div>
+  <div class="sec-t">Letz Assessoria</div>
   <div class="cg cg2" id="d-letz"></div>
   <div class="sec-t">Consultoria Online</div>
   <div class="cg cg2" id="d-consult"></div>
@@ -353,7 +361,7 @@ select.fi{cursor:pointer;}
   <div class="sec-t">Resultado L&iacute;quido</div>
   <div class="cg cg2" id="d-liq"></div>
   <div class="cg cg2" style="margin-bottom:14px">
-    <div class="panel" style="margin-bottom:0"><div class="panel-head"><div class="panel-title">Receita x Gasto</div></div><div style="padding:14px"><div id="d-chart" class="bar-wrap"></div><div id="d-chart-lbl" style="display:flex;gap:4px;margin-top:2px;"></div></div></div>
+    <div class="panel" style="margin-bottom:0"><div class="panel-head"><div class="panel-title">Receita x Gasto</div></div><div style="padding:14px"><div id="d-chart" class="bar-wrap"><div class="bar-wrap-zero"></div></div><div id="d-chart-lbl" style="display:flex;gap:4px;margin-top:20px;"></div></div></div>
     <div class="panel" style="margin-bottom:0"><div class="panel-head"><div class="panel-title">Distribui&ccedil;&atilde;o Receita</div></div><div style="padding:14px" id="d-dist"></div></div>
   </div>
 </div>
@@ -373,7 +381,7 @@ select.fi{cursor:pointer;}
 <!-- LETZ -->
 <div class="page" id="page-letz">
   <div class="topbar">
-    <div><div class="pg-title">Letz Academia</div></div>
+    <div><div class="pg-title">Letz Assessoria</div></div>
     <div class="top-acts">
       <button class="btn btn-ghost btn-sm" onclick="openModal('m-receita-extra')">+ Receita</button>
       <button class="btn btn-primary btn-sm" onclick="openModal('m-letz-aluno')">+ Aluno</button>
@@ -1040,7 +1048,7 @@ function autoVal(valId,area,planId){
 }
 
 function buildGastoModal(area){
-  const labels={letz:'Letz Academia',consult:'Consultoria',aval:'Avaliacao Clinica',pessoal:'Pessoal'};
+  const labels={letz:'Letz Assessoria',consult:'Consultoria',aval:'Avaliacao Clinica',pessoal:'Pessoal'};
   const catOpts=cfg.cats.map(c=>`<option>${c}</option>`).join('');
   const tipoField=area==='pessoal'?`<div class="fg"><label class="fl">Tipo</label><select class="fi" id="gm-tipo"><option value="fixo">Fixo</option><option value="variavel">Variavel</option></select></div>`:'<div></div>';
   document.getElementById('mc-gasto').innerHTML=`
@@ -1852,11 +1860,24 @@ function renderDashboard(){
   const areas=[{l:'Letz',r:letzRec,g:letzGas},{l:'Consult.',r:consultRec,g:consultGas},{l:'Aval.',r:avalRec,g:avalGas}];
   const maxV=Math.max(...areas.map(a=>Math.max(a.r,a.g)),1);
   const ch=document.getElementById('d-chart');const cl=document.getElementById('d-chart-lbl');
-  if(ch)ch.innerHTML=areas.flatMap(a=>[
-    `<div class="bar-col"><div class="bar" style="height:${Math.round(a.r/maxV*66)}px;background:var(--s2);border:1px solid var(--border)"><span class="bar-v">${fmt(a.r)}</span></div><div class="bar-lbl" style="color:var(--up);font-size:7px"></div></div>`,
-    `<div class="bar-col"><div class="bar" style="height:${Math.round(a.g/maxV*66)}px;background:var(--s2);border:1px solid var(--border)"><span class="bar-v">${fmt(a.g)}</span></div><div class="bar-lbl" style="color:var(--down);font-size:7px"></div></div>`,
-  ]).join('');
-  if(cl)cl.innerHTML=areas.map(a=>`<div style="flex:2;text-align:center;font-size:8px;color:var(--muted)">${a.l}</div>`).join('');
+  if(ch)ch.innerHTML='<div class="bar-wrap-zero"></div>'+areas.map(a=>{
+    const rH=Math.round(a.r/maxV*60);
+    const gH=Math.round(a.g/maxV*60);
+    const liq=a.r-a.g;
+    return`<div class="bar-col">
+      <div class="bar-col-inner up">
+        <div class="bar up" style="height:${rH}px;background:rgba(34,197,94,.25);border:1px solid var(--up)">
+          ${rH>0?`<span class="bar-v up" style="color:var(--up)">${fmt(a.r)}</span>`:''}
+        </div>
+      </div>
+      <div class="bar-col-inner down">
+        <div class="bar down" style="height:${gH}px;background:rgba(239,68,68,.25);border:1px solid var(--down)">
+          ${gH>0?`<span class="bar-v down" style="color:var(--down)">${fmt(a.g)}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  if(cl)cl.innerHTML=areas.map(a=>`<div style="flex:1;text-align:center;font-size:8px;color:var(--muted)">${a.l}</div>`).join('');
 
   const totalRec=Math.max(letzRec+consultRec+avalRec,1);
   const dr=document.getElementById('d-dist');
@@ -1917,7 +1938,7 @@ function getMesData(ano, mes) {
   const recNeg = sum(letzRec)+sum(consultRec)+sum(avalRec);
   return {
     areas:[
-      {id:'letz',nome:'Letz Academia',rec:letzRec,gas:letzGas},
+      {id:'letz',nome:'Letz Assessoria',rec:letzRec,gas:letzGas},
       {id:'consult',nome:'Consultoria Online',rec:consultRec,gas:consultGas},
       {id:'aval',nome:'Avaliacao Clinica',rec:avalRec,gas:avalGas},
       {id:'pessoal',nome:'Financas Pessoais',rec:pessoalRec,gas:pessoalGas},
