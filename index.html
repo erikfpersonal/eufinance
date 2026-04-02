@@ -338,7 +338,7 @@ select.fi{cursor:pointer;}
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
   <div class="topbar">
-    <div><div class="pg-title">Dashboard</div><div class="pg-sub">Mar&ccedil;o 2026</div></div>
+    <div><div class="pg-title">Dashboard</div><div class="pg-sub" id="d-mes-titulo"></div></div>
     <button class="btn btn-ghost btn-sm" onclick="go('alertas')">Alertas <span id="d-n"></span></button>
   </div>
   <div id="d-banner"></div>
@@ -887,7 +887,7 @@ async function saveConfig(){
   else toast('Configuracoes salvas!');
 }
 
-function rowToAluno(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#3b82f6'};}
+function rowToAluno(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#3b82f6',mesesPendentes:r.meses_pendentes||0};}
 function rowToCliente(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#06b6d4'};}
 function rowToPgto(r){return{id:r.id,alunoNome:r.aluno_nome||r.alunoNome,mes:r.mes,valor:+r.valor,data:r.data,metodo:r.metodo};}
 function rowToExtra(r){return{id:r.id,tipo:r.tipo,desc:r.descricao||r.desc||'',valor:+r.valor,data:r.data};}
@@ -1091,11 +1091,15 @@ function autoRenovar(item,plans){
 function checkRenovacoes(){
   S.letzAlunos.forEach(a=>{
     const antes=a.venc;
+    const eraPendente=a.pgto==='pendente';
     autoRenovar(a,cfg.letzPlans);
-    if(a.venc!==antes&&CURRENT_USER)
-      dbUpdate('letz_alunos',a.id,{venc:a.venc,pgto:'pendente'});
+    if(a.venc!==antes&&CURRENT_USER){
+      // virou o mês: se já era pendente, incrementa contador
+      const novosMeses=eraPendente?(a.mesesPendentes||0)+1:1;
+      a.mesesPendentes=novosMeses;
+      dbUpdate('letz_alunos',a.id,{venc:a.venc,pgto:'pendente',meses_pendentes:novosMeses});
+    }
   });
-
   S.consultClientes.forEach(c=>{
     const antes=c.venc;
     autoRenovar(c,cfg.consultPlans);
@@ -1355,24 +1359,58 @@ function adicionarCat(){
 /* AC?ES */
 async function marcarPago(area,id){
   const tableMap={letz:'letz_alunos',consult:'consult_clientes',aval:'aval_sessoes'};
-  await dbUpdate(tableMap[area],id,{pgto:'pago'});
   const maps={letz:S.letzAlunos,consult:S.consultClientes,aval:S.avalSessoes};
-  const item=maps[area]?.find(x=>x.id===id);if(item)item.pgto='pago';
-  if(area==='letz'&&item){
+  const item=maps[area]?.find(x=>x.id===id);if(!item)return;
+  if(area==='letz'){
+    const mp=item.mesesPendentes||0;
+    if(mp>1){
+      // ainda tem meses pendentes: desconta 1, mantém pendente
+      item.mesesPendentes=mp-1;
+      await dbUpdate('letz_alunos',id,{meses_pendentes:mp-1});
+      // registra 1 pagamento referente ao mês mais antigo pendente
+      const row=await dbInsert('letz_pagamentos',{
+        aluno_id:item.id,aluno_nome:item.nome,
+        mes:MESES_NOMES[TODAY.getMonth()]+'/'+String(TODAY.getFullYear()).slice(2),
+        valor:item.valor,data:TODAY_STR,metodo:'PIX'
+      });
+      if(row)S.letzPgtos.unshift(rowToPgto(row));
+      toast(`1 mês pago. Ainda falta ${mp-1}x`);
+    } else {
+      // último mês pendente: quita tudo
+      item.pgto='pago';item.mesesPendentes=0;
+      await dbUpdate('letz_alunos',id,{pgto:'pago',meses_pendentes:0});
+      const row=await dbInsert('letz_pagamentos',{
+        aluno_id:item.id,aluno_nome:item.nome,
+        mes:MESES_NOMES[TODAY.getMonth()]+'/'+String(TODAY.getFullYear()).slice(2),
+        valor:item.valor,data:TODAY_STR,metodo:'PIX'
+      });
+      if(row)S.letzPgtos.unshift(rowToPgto(row));
+      toast('Pagamento confirmado! (ok)');
+    }
+  } else {
+    await dbUpdate(tableMap[area],id,{pgto:'pago'});
+    item.pgto='pago';
+    toast('Pagamento confirmado! (ok)');
+  }
+  ({letz:renderLetz,consult:renderConsultoria,aval:renderAvaliacao}[area]||(() => {}))();
+  renderDashboard();updateBadge();
+}
+async function pagarTudo(id){
+  const item=S.letzAlunos.find(x=>x.id===id);if(!item)return;
+  const mp=item.mesesPendentes||0;
+  item.pgto='pago';item.mesesPendentes=0;
+  await dbUpdate('letz_alunos',id,{pgto:'pago',meses_pendentes:0});
+  // registra 1 pagamento por cada mês em aberto
+  for(let i=0;i<Math.max(mp,1);i++){
     const row=await dbInsert('letz_pagamentos',{
-      aluno_id:item.id,
-      aluno_nome:item.nome,
+      aluno_id:item.id,aluno_nome:item.nome,
       mes:MESES_NOMES[TODAY.getMonth()]+'/'+String(TODAY.getFullYear()).slice(2),
-      valor:item.valor,
-      data:TODAY_STR,
-      metodo:'PIX'
+      valor:item.valor,data:TODAY_STR,metodo:'PIX'
     });
     if(row)S.letzPgtos.unshift(rowToPgto(row));
   }
-  toast('Pagamento confirmado! (ok)');
-  ({letz:renderLetz,consult:renderConsultoria,aval:renderAvaliacao}[area]||(() => {}))();
-  renderDashboard();
-  updateBadge();
+  toast(`${item.nome} — ${Math.max(mp,1)} mês(es) quitado(s)! (ok)`);
+  renderLetz();renderDashboard();updateBadge();
 }
 async function toggleInativo(area,id){
   const maps={letz:S.letzAlunos,consult:S.consultClientes};
@@ -1453,7 +1491,8 @@ function renderLetzAlunos(){
           <span style="font-weight:600;color:var(--white)">${fmt(a.valor)}</span>
         </div>
         <div class="ci-acts">
-          ${a.ativo&&st==='pendente'?`<button class="btn btn-green btn-sm" onclick="marcarPago('letz','${a.id}')">Pago</button>`:''}
+          ${a.ativo&&st==='pendente'&&(a.mesesPendentes||0)>1?`<span style="font-size:11px;font-weight:700;color:var(--down);margin-right:2px">${a.mesesPendentes}x</span><button class="btn btn-green btn-sm" onclick="marcarPago('letz','${a.id}')">Pago</button><button class="btn btn-primary btn-sm" onclick="pagarTudo('${a.id}')">Pagar tudo</button>`:''}
+          ${a.ativo&&st==='pendente'&&(a.mesesPendentes||0)<=1?`<button class="btn btn-green btn-sm" onclick="marcarPago('letz','${a.id}')">Pago</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="editarAluno('${a.id}')">(edit)</button>
           <button class="btn ${a.ativo?'btn-gray':'btn-ghost'} btn-sm" onclick="toggleInativo('letz','${a.id}')">${a.ativo?'Inativar':'Ativar'}</button>
           <button class="btn btn-danger btn-sm" onclick="remover('letz','${a.id}')">x</button>
@@ -1720,16 +1759,41 @@ function renderAlertas(){
 }
 
 /* RENDER: DASHBOARD */
+function gastoAtivoMes(g){
+  const hoje=TODAY;
+  const ini=new Date(g.data+'T12:00:00');
+  const anoIni=ini.getFullYear(),mesIni=ini.getMonth();
+  const anoHj=hoje.getFullYear(),mesHj=hoje.getMonth();
+  if(anoIni>anoHj||(anoIni===anoHj&&mesIni>mesHj))return false;
+  if(g.parcelas>1){
+    const diff=(anoHj-anoIni)*12+(mesHj-mesIni);
+    return diff>=0&&diff<g.parcelas;
+  }
+  if(g.tipo==='fixo')return true;
+  return anoIni===anoHj&&mesIni===mesHj;
+}
 function renderDashboard(){
   checkRenovacoes();
-  const letzRec=S.letzPgtos.reduce((s,p)=>s+p.valor,0)+S.letzExtras.reduce((s,e)=>s+e.valor,0);
-  const consultRec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo).reduce((s,c)=>s+c.valor,0);
-  const avalRec=S.avalSessoes.filter(a=>a.pgto==='pago').reduce((s,a)=>s+a.valor,0);
-  const pessoalRec=S.receitasPessoais.reduce((s,r)=>s+r.valor,0);
-  const letzGas=S.letzGastos.reduce((s,g)=>s+parcelaVal(g),0);
-  const consultGas=S.consultGastos.reduce((s,g)=>s+parcelaVal(g),0);
-  const avalGas=S.avalGastos.reduce((s,g)=>s+parcelaVal(g),0);
-  const pessoalGas=S.gastosPessoais.reduce((s,g)=>s+parcelaVal(g),0);
+  const _dm=TODAY.getMonth(),_da=TODAY.getFullYear();
+  const _inMes=d=>{
+    if(!d)return false;
+    const dt=new Date(d+'T12:00:00');
+    return dt.getMonth()===_dm&&dt.getFullYear()===_da;
+  };
+  // Atualiza título do mês
+  const tit=document.getElementById('d-mes-titulo');
+  if(tit)tit.textContent=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][_dm]+' '+_da;
+  // Receitas filtradas pelo mês atual
+  const letzRec=S.letzPgtos.filter(p=>_inMes(p.data)).reduce((s,p)=>s+p.valor,0)
+               +S.letzExtras.filter(e=>_inMes(e.data)).reduce((s,e)=>s+e.valor,0);
+  const consultRec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo&&_inMes(c.inicio)).reduce((s,c)=>s+c.valor,0);
+  const avalRec=S.avalSessoes.filter(a=>a.pgto==='pago'&&_inMes(a.data)).reduce((s,a)=>s+a.valor,0);
+  const pessoalRec=S.receitasPessoais.filter(r=>_inMes(r.data)).reduce((s,r)=>s+r.valor,0);
+  // Gastos: fixos recorrentes + parcelados ativos + variáveis do mês
+  const letzGas=S.letzGastos.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
+  const consultGas=S.consultGastos.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
+  const avalGas=S.avalGastos.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
+  const pessoalGas=S.gastosPessoais.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
 
   const n=+document.getElementById('nb-badge').textContent;
   const aw=document.getElementById('d-banner');
