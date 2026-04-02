@@ -641,7 +641,8 @@ select.fi{cursor:pointer;}
       <div class="fg"><label class="fl">Plano</label><select class="fi" id="ec-plano"></select></div>
       <div class="fg"><label class="fl">Tipo</label><select class="fi" id="ec-tipo" onchange="toggleMesesConsultEdit(this.value)">
         <option value="unico">Único</option>
-        <option value="recorrente">Recorrente</option>
+        <option value="recorrente_mensal">Recorrente Mensal</option>
+        <option value="recorrente">Recorrente (prazo fixo)</option>
       </select></div>
     </div>
     <div class="fg" id="ec-meses-group" style="display:none">
@@ -695,7 +696,8 @@ select.fi{cursor:pointer;}
       <div class="fg"><label class="fl">Plano</label><select class="fi" id="cc-plano"></select></div>
       <div class="fg"><label class="fl">Tipo</label><select class="fi" id="cc-tipo" onchange="toggleMesesConsult(this.value)">
         <option value="unico">Único</option>
-        <option value="recorrente">Recorrente</option>
+        <option value="recorrente_mensal">Recorrente Mensal</option>
+        <option value="recorrente">Recorrente (prazo fixo)</option>
       </select></div>
     </div>
     <div class="fg" id="cc-meses-group" style="display:none">
@@ -888,7 +890,7 @@ async function saveConfig(){
 }
 
 function rowToAluno(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#3b82f6',mesesPendentes:r.meses_pendentes||0};}
-function rowToCliente(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#06b6d4'};}
+function rowToCliente(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#06b6d4',tipoContrato:r.tipo_contrato||'unico'};}
 function rowToPgto(r){return{id:r.id,alunoNome:r.aluno_nome||r.alunoNome,mes:r.mes,valor:+r.valor,data:r.data,metodo:r.metodo};}
 function rowToExtra(r){return{id:r.id,tipo:r.tipo,desc:r.descricao||r.desc||'',valor:+r.valor,data:r.data};}
 function rowToGasto(r){return{id:r.id,desc:r.descricao||r.desc,cat:r.categoria||r.cat||'Outros',tipo:r.tipo||'variavel',metodo:r.metodo||'PIX',parcelas:r.parcelas||1,valorTotal:+(r.valor_total||r.valorTotal),data:r.data};}
@@ -1101,10 +1103,23 @@ function checkRenovacoes(){
     }
   });
   S.consultClientes.forEach(c=>{
-    const antes=c.venc;
-    autoRenovar(c,cfg.consultPlans);
-    if(c.venc!==antes&&CURRENT_USER)
-      dbUpdate('consult_clientes',c.id,{venc:c.venc,pgto:'pendente'});
+    if(c.tipoContrato==='recorrente_mensal'){
+      // renova automaticamente todo mês
+      const antes=c.venc;
+      const d=c.venc?dias(c.venc):null;
+      if(d!==null&&d<0){
+        const v=new Date(c.venc+'T12:00:00');
+        v.setMonth(v.getMonth()+1);
+        c.venc=v.toISOString().split('T')[0];
+        c.pgto='pendente';
+        if(CURRENT_USER)dbUpdate('consult_clientes',c.id,{venc:c.venc,pgto:'pendente'});
+      }
+    } else {
+      const antes=c.venc;
+      autoRenovar(c,cfg.consultPlans);
+      if(c.venc!==antes&&CURRENT_USER)
+        dbUpdate('consult_clientes',c.id,{venc:c.venc,pgto:'pendente'});
+    }
   });
 }
 
@@ -1189,6 +1204,16 @@ function toggleMesesConsult(tipo){
   if(g)g.style.display=tipo==='recorrente'?'block':'none';
   calcValorMensalConsult();
 }
+function tipoContratoLabel(t){
+  if(t==='recorrente_mensal')return'Mensal';
+  if(t==='recorrente')return'Prazo fixo';
+  return'Único';
+}
+function tipoContratoLabel(t){
+  if(t==='recorrente_mensal')return'Mensal';
+  if(t==='recorrente')return'Prazo fixo';
+  return'Único';
+}
 function calcValorMensalConsult(){
   const tipo=document.getElementById('cc-tipo')?.value;
   const meses=+document.getElementById('cc-meses')?.value||1;
@@ -1210,6 +1235,7 @@ async function salvarClienteConsult(){
   const inicio=document.getElementById('cc-inicio').value;
   const pgto=document.getElementById('cc-pgto').value;
   const tipo=document.getElementById('cc-tipo').value;
+  const isMensal=tipo==='recorrente_mensal';
   const meses=tipo==='recorrente'?+document.getElementById('cc-meses').value:null;
   const valorMensal=meses?+(valorTotal/meses).toFixed(2):valorTotal;
   let venc=null;
@@ -1217,8 +1243,13 @@ async function salvarClienteConsult(){
     const v=new Date(inicio+'T12:00:00');
     v.setMonth(v.getMonth()+meses);
     venc=v.toISOString().split('T')[0];
+  } else if(isMensal&&inicio){
+    // recorrente mensal: venc = 1 mês após início
+    const v=new Date(inicio+'T12:00:00');
+    v.setMonth(v.getMonth()+1);
+    venc=v.toISOString().split('T')[0];
   }
-  const row=await dbInsert('consult_clientes',{nome,tel:document.getElementById('cc-tel').value,plano,valor:valorMensal,inicio,venc,pgto,ativo:true,cor:rndCor()});
+  const row=await dbInsert('consult_clientes',{nome,tel:document.getElementById('cc-tel').value,plano,valor:valorMensal,inicio,venc,pgto,ativo:true,cor:rndCor(),tipo_contrato:tipo});
   if(!row)return;
   S.consultClientes.push(rowToCliente(row));
   closeModal('m-consult-cliente');
@@ -1286,7 +1317,7 @@ function editarCliente(id){
   document.getElementById('ec-plano').value=c.plano;
   // detecta se é recorrente (tem venc) ou único
   const temVenc=!!c.venc;
-  document.getElementById('ec-tipo').value=temVenc?'recorrente':'unico';
+  document.getElementById('ec-tipo').value=c.tipoContrato||(temVenc?'recorrente':'unico');
   document.getElementById('ec-meses-group').style.display=temVenc?'block':'none';
   // calcula quantos meses restam se tiver venc
   if(temVenc&&c.inicio&&c.venc){
@@ -1325,7 +1356,7 @@ async function salvarEdicaoCliente(){
     v.setMonth(v.getMonth()+meses);
     novoVenc=v.toISOString().split('T')[0];
   }
-  const updates={nome:document.getElementById('ec-nome').value.trim()||c.nome,tel:document.getElementById('ec-tel').value,plano:novoPlano,valor:valorMensal,inicio:novoInicio,venc:novoVenc,pgto:document.getElementById('ec-pgto').value};
+  const updates={nome:document.getElementById('ec-nome').value.trim()||c.nome,tel:document.getElementById('ec-tel').value,plano:novoPlano,valor:valorMensal,inicio:novoInicio,venc:novoVenc,pgto:document.getElementById('ec-pgto').value,tipo_contrato:tipo};
   await dbUpdate('consult_clientes',id,updates);
   Object.assign(c,updates);
   closeModal('m-editar-cliente');
@@ -1586,8 +1617,10 @@ function renderLetzGastosLista(){
 
 /* RENDER: CONSULTORIA */
 function renderConsultoria(){
-  const rec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo).reduce((s,c)=>s+c.valor,0);
-  const gas=S.consultGastos.reduce((s,g)=>s+parcelaVal(g),0);
+  const _cm=TODAY.getMonth(),_ca=TODAY.getFullYear();
+  const _inMesC=d=>{if(!d)return false;const dt=new Date(d+'T12:00:00');return dt.getMonth()===_cm&&dt.getFullYear()===_ca;};
+  const rec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo&&_inMesC(c.inicio)).reduce((s,c)=>s+c.valor,0);
+  const gas=S.consultGastos.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
   const el=document.getElementById('consult-resumo-cards');
   if(el)el.innerHTML=`
     <div class="sc" style="--ac:var(--cyan)"><div class="sc-lbl">Receita</div><div class="sc-val">${fmt(rec)}</div></div>
@@ -1611,7 +1644,7 @@ function renderConsultLista(){
     <div class="ci${c.ativo?'':' inativo'}">
       <div class="ci-top">
         ${chipEl(c.nome,c.tel,c.cor)}
-        <span class="badge ${pbmap[c.plano]||'bb'}" style="font-size:10px">${planNome(cfg.consultPlans,c.plano)}</span>
+        <span class="badge ${pbmap[c.plano]||'bb'}" style="font-size:10px">${planNome(cfg.consultPlans,c.plano)}</span>${c.tipoContrato==='recorrente_mensal'?'<span class="badge bg" style="font-size:9px">Mensal</span>':''}${c.tipoContrato==='recorrente_mensal'?'<span class="badge bg" style="font-size:9px">Mensal</span>':''}
       </div>
       <div class="ci-bot">
         <div class="ci-meta">
@@ -1648,9 +1681,11 @@ function renderConsultGastos(){
 
 /* RENDER: AVALIACAO */
 function renderAvaliacao(){
-  const rec=S.avalSessoes.filter(a=>a.pgto==='pago').reduce((s,a)=>s+a.valor,0);
-  const gas=S.avalGastos.reduce((s,g)=>s+parcelaVal(g),0);
-  const pend=S.avalSessoes.filter(a=>a.pgto==='pendente').reduce((s,a)=>s+a.valor,0);
+  const _vm=TODAY.getMonth(),_va=TODAY.getFullYear();
+  const _inMesV=d=>{if(!d)return false;const dt=new Date(d+'T12:00:00');return dt.getMonth()===_vm&&dt.getFullYear()===_va;};
+  const rec=S.avalSessoes.filter(a=>a.pgto==='pago'&&_inMesV(a.data)).reduce((s,a)=>s+a.valor,0);
+  const gas=S.avalGastos.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
+  const pend=S.avalSessoes.filter(a=>a.pgto==='pendente'&&_inMesV(a.data)).reduce((s,a)=>s+a.valor,0);
   const el=document.getElementById('aval-resumo-cards');
   if(el)el.innerHTML=`
     <div class="sc" style="--ac:var(--green)"><div class="sc-lbl">Receita</div><div class="sc-val">${fmt(rec)}</div></div>
