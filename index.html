@@ -912,8 +912,8 @@ const cfg={
   cats:['Moradia','Alimentacao','Transporte','Saude','Lazer','Educacao','Marketing','Equipamento','Software','Outros'],
 };
 
-const TODAY=new Date('2026-03-25');
-const TODAY_STR='2026-03-25';
+const TODAY=new Date();
+const TODAY_STR=TODAY.toISOString().split('T')[0];
 const CORES=['#3b82f6','#8b5cf6','#10b981','#f59e0b','#06b6d4','#ef4444','#ec4899','#84cc16'];
 const MESES_NOMES=['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
