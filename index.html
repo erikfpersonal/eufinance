@@ -897,7 +897,7 @@ async function saveConfig(){
   else toast('Configuracoes salvas!');
 }
 
-function rowToAluno(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#3b82f6',mesesPendentes:r.meses_pendentes||0};}
+function rowToAluno(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#3b82f6',mesesPendentes:r.meses_pendentes||0,dataPagamento:r.data_pagamento||null};}
 function rowToCliente(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#06b6d4',tipoContrato:r.tipo_contrato||'unico',dataPagamento:r.data_pagamento||null};}
 function rowToPgto(r){return{id:r.id,alunoNome:r.aluno_nome||r.alunoNome,mes:r.mes,valor:+r.valor,data:r.data,metodo:r.metodo};}
 function rowToExtra(r){return{id:r.id,tipo:r.tipo,desc:r.descricao||r.desc||'',valor:+r.valor,data:r.data};}
@@ -1104,21 +1104,28 @@ function autoRenovar(item,plans){
     item.pgto='pendente';
   }
 }
+function _pagouMesAtual(item){
+  if(!item.dataPagamento)return false;
+  const dp=new Date(item.dataPagamento+'T12:00:00');
+  return dp.getMonth()===TODAY.getMonth()&&dp.getFullYear()===TODAY.getFullYear();
+}
 function checkRenovacoes(){
   S.letzAlunos.forEach(a=>{
+    // não renova se já foi pago no mês atual
+    if(_pagouMesAtual(a))return;
     const antes=a.venc;
     const eraPendente=a.pgto==='pendente';
     autoRenovar(a,cfg.letzPlans);
     if(a.venc!==antes&&CURRENT_USER){
-      // virou o mês: se já era pendente, incrementa contador
       const novosMeses=eraPendente?(a.mesesPendentes||0)+1:1;
       a.mesesPendentes=novosMeses;
       dbUpdate('letz_alunos',a.id,{venc:a.venc,pgto:'pendente',meses_pendentes:novosMeses});
     }
   });
   S.consultClientes.forEach(c=>{
+    // não renova se já foi pago no mês atual
+    if(_pagouMesAtual(c))return;
     if(c.tipoContrato==='recorrente_mensal'){
-      // renova automaticamente todo mês
       const antes=c.venc;
       const d=c.venc?dias(c.venc):null;
       if(d!==null&&d<0){
@@ -1402,17 +1409,26 @@ function adicionarCat(){
 }
 
 /* AC?ES */
+function _calcProxVenc(item, plans){
+  const plan=plans.find(p=>p.id===item.plano);
+  if(!plan?.dias)return item.venc;
+  // avança em meses a partir do venc atual, mantendo o dia
+  const meses=Math.round(plan.dias/30);
+  const base=item.venc?new Date(item.venc+'T12:00:00'):new Date(TODAY);
+  base.setMonth(base.getMonth()+meses);
+  return base.toISOString().split('T')[0];
+}
 async function marcarPago(area,id){
   const tableMap={letz:'letz_alunos',consult:'consult_clientes',aval:'aval_sessoes'};
   const maps={letz:S.letzAlunos,consult:S.consultClientes,aval:S.avalSessoes};
   const item=maps[area]?.find(x=>x.id===id);if(!item)return;
   if(area==='letz'){
     const mp=item.mesesPendentes||0;
+    // calcula próximo vencimento
+    const novoVenc=_calcProxVenc(item,cfg.letzPlans);
     if(mp>1){
-      // ainda tem meses pendentes: desconta 1, mantém pendente
       item.mesesPendentes=mp-1;
       await dbUpdate('letz_alunos',id,{meses_pendentes:mp-1});
-      // registra 1 pagamento referente ao mês mais antigo pendente
       const row=await dbInsert('letz_pagamentos',{
         aluno_id:item.id,aluno_nome:item.nome,
         mes:MESES_NOMES[TODAY.getMonth()]+'/'+String(TODAY.getFullYear()).slice(2),
@@ -1421,9 +1437,8 @@ async function marcarPago(area,id){
       if(row)S.letzPgtos.unshift(rowToPgto(row));
       toast(`1 mês pago. Ainda falta ${mp-1}x`);
     } else {
-      // último mês pendente: quita tudo
-      item.pgto='pago';item.mesesPendentes=0;
-      await dbUpdate('letz_alunos',id,{pgto:'pago',meses_pendentes:0});
+      item.pgto='pago';item.mesesPendentes=0;item.dataPagamento=TODAY_STR;item.venc=novoVenc;
+      await dbUpdate('letz_alunos',id,{pgto:'pago',meses_pendentes:0,data_pagamento:TODAY_STR,venc:novoVenc});
       const row=await dbInsert('letz_pagamentos',{
         aluno_id:item.id,aluno_nome:item.nome,
         mes:MESES_NOMES[TODAY.getMonth()]+'/'+String(TODAY.getFullYear()).slice(2),
@@ -1433,9 +1448,16 @@ async function marcarPago(area,id){
       toast('Pagamento confirmado! (ok)');
     }
   } else if(area==='consult'){
-    await dbUpdate('consult_clientes',id,{pgto:'pago',data_pagamento:TODAY_STR});
-    item.pgto='pago';
-    item.dataPagamento=TODAY_STR;
+    // avança vencimento conforme tipo contrato
+    let novoVenc=item.venc;
+    if(item.tipoContrato==='recorrente_mensal'||item.tipoContrato==='recorrente'){
+      // avança 1 mês a partir do venc atual, mantendo o dia
+      const base=item.venc?new Date(item.venc+'T12:00:00'):new Date(TODAY);
+      base.setMonth(base.getMonth()+1);
+      novoVenc=base.toISOString().split('T')[0];
+    }
+    item.pgto='pago';item.dataPagamento=TODAY_STR;item.venc=novoVenc;
+    await dbUpdate('consult_clientes',id,{pgto:'pago',data_pagamento:TODAY_STR,venc:novoVenc});
     toast('Pagamento confirmado! (ok)');
   } else {
     await dbUpdate(tableMap[area],id,{pgto:'pago'});
