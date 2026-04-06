@@ -898,7 +898,7 @@ async function saveConfig(){
 }
 
 function rowToAluno(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#3b82f6',mesesPendentes:r.meses_pendentes||0};}
-function rowToCliente(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#06b6d4',tipoContrato:r.tipo_contrato||'unico'};}
+function rowToCliente(r){return{id:r.id,nome:r.nome,tel:r.tel||'',plano:r.plano,valor:+r.valor,inicio:r.inicio,venc:r.venc,pgto:r.pgto,ativo:r.ativo,cor:r.cor||'#06b6d4',tipoContrato:r.tipo_contrato||'unico',dataPagamento:r.data_pagamento||null};}
 function rowToPgto(r){return{id:r.id,alunoNome:r.aluno_nome||r.alunoNome,mes:r.mes,valor:+r.valor,data:r.data,metodo:r.metodo};}
 function rowToExtra(r){return{id:r.id,tipo:r.tipo,desc:r.descricao||r.desc||'',valor:+r.valor,data:r.data};}
 function rowToGasto(r){return{id:r.id,desc:r.descricao||r.desc,cat:r.categoria||r.cat||'Outros',tipo:r.tipo||'variavel',metodo:r.metodo||'PIX',parcelas:r.parcelas||1,valorTotal:+(r.valor_total||r.valorTotal),data:r.data};}
@@ -1426,6 +1426,11 @@ async function marcarPago(area,id){
       if(row)S.letzPgtos.unshift(rowToPgto(row));
       toast('Pagamento confirmado! (ok)');
     }
+  } else if(area==='consult'){
+    await dbUpdate('consult_clientes',id,{pgto:'pago',data_pagamento:TODAY_STR});
+    item.pgto='pago';
+    item.dataPagamento=TODAY_STR;
+    toast('Pagamento confirmado! (ok)');
   } else {
     await dbUpdate(tableMap[area],id,{pgto:'pago'});
     item.pgto='pago';
@@ -1541,8 +1546,10 @@ function renderLetzAlunos(){
     </div>`}).join('')||'<div style="text-align:center;padding:24px;color:var(--muted)">Nenhum aluno</div>';
 }
 function renderLetzCards(){
-  const pgtos=S.letzPgtos.reduce((s,p)=>s+p.valor,0);
-  const extras=S.letzExtras.reduce((s,e)=>s+e.valor,0);
+  const _lm=TODAY.getMonth(),_la=TODAY.getFullYear();
+  const _inMesL=d=>{if(!d)return false;const dt=new Date(d+'T12:00:00');return dt.getMonth()===_lm&&dt.getFullYear()===_la;};
+  const pgtos=S.letzPgtos.filter(p=>_inMesL(p.data)).reduce((s,p)=>s+p.valor,0);
+  const extras=S.letzExtras.filter(e=>_inMesL(e.data)).reduce((s,e)=>s+e.valor,0);
   const el=document.getElementById('letz-rec-cards');
   if(el)el.innerHTML=`
     <div class="sc" style="--ac:var(--green)"><div class="sc-lbl">Pgtos Alunos</div><div class="sc-val">${fmt(pgtos)}</div></div>
@@ -1627,7 +1634,7 @@ function renderLetzGastosLista(){
 function renderConsultoria(){
   const _cm=TODAY.getMonth(),_ca=TODAY.getFullYear();
   const _inMesC=d=>{if(!d)return false;const dt=new Date(d+'T12:00:00');return dt.getMonth()===_cm&&dt.getFullYear()===_ca;};
-  const rec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo&&_inMesC(c.inicio)).reduce((s,c)=>s+c.valor,0);
+  const rec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo&&_inMesC(c.dataPagamento||c.inicio)).reduce((s,c)=>s+c.valor,0);
   const gas=S.consultGastos.filter(gastoAtivoMes).reduce((s,g)=>s+parcelaVal(g),0);
   const el=document.getElementById('consult-resumo-cards');
   if(el)el.innerHTML=`
@@ -1829,7 +1836,7 @@ function renderDashboard(){
   // Receitas filtradas pelo mês atual
   const letzRec=S.letzPgtos.filter(p=>_inMes(p.data)).reduce((s,p)=>s+p.valor,0)
                +S.letzExtras.filter(e=>_inMes(e.data)).reduce((s,e)=>s+e.valor,0);
-  const consultRec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo&&_inMes(c.inicio)).reduce((s,c)=>s+c.valor,0);
+  const consultRec=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo&&_inMes(c.dataPagamento||c.inicio)).reduce((s,c)=>s+c.valor,0);
   const avalRec=S.avalSessoes.filter(a=>a.pgto==='pago'&&_inMes(a.data)).reduce((s,a)=>s+a.valor,0);
   const pessoalRec=S.receitasPessoais.filter(r=>_inMes(r.data)).reduce((s,r)=>s+r.valor,0);
   // Gastos: fixos recorrentes + parcelados ativos + variáveis do mês
@@ -1914,7 +1921,7 @@ function getMesData(ano, mes) {
   const letzGas = letzGasMes.map(g=>({desc:g.desc,sub:`${g.cat}  ${g.metodo}`,val:parcelaVal(g),valTotal:g.parcelas>1?g.valorTotal:null,parc:g.parcelas>1?parcelaB(g):null,tipo:'gasto'}));
 
   // Consult receitas
-  const consultRecMes = S.consultClientes.filter(c=>c.pgto==='pago'&&inMes(c.inicio,ano,mes));
+  const consultRecMes = S.consultClientes.filter(c=>c.pgto==='pago'&&inMes(c.dataPagamento||c.inicio,ano,mes));
   const consultRec = consultRecMes.map(c=>({desc:c.nome,sub:planNome(cfg.consultPlans,c.plano),val:c.valor,tipo:'receita'}));
   const consultGasMes = S.consultGastos.filter(g=>gastoAtivoParcela(g,ano,mes));
   const consultGas = consultGasMes.map(g=>({desc:g.desc,sub:`${g.cat}  ${g.metodo}`,val:parcelaVal(g),valTotal:g.parcelas>1?g.valorTotal:null,parc:g.parcelas>1?parcelaB(g):null,tipo:'gasto'}));
