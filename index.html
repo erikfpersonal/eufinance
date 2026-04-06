@@ -959,12 +959,18 @@ function diasB(d,inativo){
 /* Status real: se pgto='pago' E ainda esta dentro da vigencia Pago. Se venceu, mesmo com pgto='pago' Pendente (nova vigencia a pagar). */
 function statusReal(item){
   if(!item.ativo) return 'inativo';
-  // planos  nicos (sem venc) = sempre pago se marcado
+  // planos únicos (sem venc) = sempre pago se marcado
   if(!item.venc) return item.pgto;
+  // se tem data_pagamento no mês atual = pago
+  if(item.pgto==='pago'&&item.dataPagamento){
+    const dp=new Date(item.dataPagamento+'T12:00:00');
+    if(dp.getMonth()===TODAY.getMonth()&&dp.getFullYear()===TODAY.getFullYear())
+      return 'pago';
+  }
   const d = dias(item.venc);
-  // dentro do per odo pago   Pago
+  // dentro do período = pago
   if(item.pgto==='pago' && d > 0) return 'pago';
-  // venceu   Pendente (independente de como estava marcado)
+  // venceu = pendente
   if(d <= 0) return 'pendente';
   return item.pgto;
 }
