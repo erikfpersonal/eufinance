@@ -457,6 +457,14 @@ select.fi{cursor:pointer;}
     <div class="card-list" id="lista-consult"></div>
   </div>
 
+  <!-- Receitas -->
+  <div class="sec-t">Receitas</div>
+  <div class="cg cg3" id="consult-rec-cards"></div>
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title">Pagamentos de Clientes</div></div>
+    <div class="card-list" id="lista-consult-pgtos"></div>
+  </div>
+
   <!-- Gastos -->
   <div class="sec-t">Gastos</div>
   <div class="cg cg3" id="consult-gas-cards"></div>
@@ -948,9 +956,13 @@ const dias=v=>v?Math.ceil((new Date(v)-TODAY)/86400000):null;
 const rndCor=()=>CORES[Math.floor(Math.random()*CORES.length)];
 const planNome=(plans,id)=>plans.find(p=>p.id===id)?.nome||id;
 
-function diasB(d,inativo){
+function diasB(d,inativo,tipoContrato){
   if(inativo)return'<span style="padding:2px 8px;border-radius:8px;font-size:11px;background:var(--grdim);color:var(--muted2)">Inativo</span>';
-  if(d===null)return'<span class="badge bp">Unico</span>';
+  if(d===null){
+    if(tipoContrato==='recorrente_mensal')return'<span class="badge bg">Mensal</span>';
+    if(tipoContrato==='recorrente')return'<span class="badge bc">Prazo fixo</span>';
+    return'<span class="badge bp">Único</span>';
+  }
   if(d<0)return`<span class="dbad">${Math.abs(d)}d vencido</span>`;
   if(d<=7)return`<span class="dwarn">${d}d</span>`;
   return`<span class="dok">${d}d restantes</span>`;
@@ -983,22 +995,26 @@ function pgtoB(s){
 
 /* Retorna HTML com info do proximo pagamento */
 function proximoPagamentoInfo(item, plans){
-  if(!item.ativo || !item.venc) return '';
-  const plan = plans.find(p=>p.id===item.plano);
-  const d = dias(item.venc);
-  const st = statusReal(item);
-  // formata data br
+  if(!item.ativo) return '';
   const fmtDate = s => { const [y,m,dd]=s.split('-'); return`${dd}/${m}/${y}`; };
+  const st = statusReal(item);
+  // pago no mês atual → mostra próximo vencimento
   if(st==='pago'){
+    if(!item.venc) return '<span style="font-size:11px;color:var(--muted)">Plano único — pago</span>';
     return`<span style="font-size:11px;color:var(--muted)">Prox. pgto: <strong style="color:var(--muted2)">${fmtDate(item.venc)}</strong></span>`;
   }
+  // sem venc = único pendente
+  if(!item.venc){
+    return`<span style="font-size:11px;color:var(--warn)">Pagamento pendente</span>`;
+  }
+  const d = dias(item.venc);
   if(st==='pendente' && d<=0){
-    return`<span style="font-size:11px;color:var(--yellow)">(!) Venceu em ${fmtDate(item.venc)}</span>`;
+    return`<span style="font-size:11px;color:var(--down)">(!) Venceu em ${fmtDate(item.venc)}</span>`;
   }
   if(d<=7){
-    return`<span style="font-size:11px;color:var(--yellow)">Vence em ${fmtDate(item.venc)}</span>`;
+    return`<span style="font-size:11px;color:var(--warn)">Vence em ${fmtDate(item.venc)}</span>`;
   }
-  return`<span style="font-size:11px;color:var(--muted)">Vence: ${fmtDate(item.venc)}</span>`;
+  return`<span style="font-size:11px;color:var(--muted)">Prox. pgto: <strong style="color:var(--muted2)">${fmtDate(item.venc)}</strong></span>`;
 }
 function avEl(nome,cor){return`<div class="av" style="background:${cor}22;color:${cor}">${nome.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>`;}
 function chipEl(nome,sub,cor){return`<div class="chip">${avEl(nome,cor)}<div><div class="cn">${nome}</div>${sub?`<div class="cs">${sub}</div>`:''}</div></div>`;}
@@ -1224,11 +1240,6 @@ function toggleMesesConsult(tipo){
   const g=document.getElementById('cc-meses-group');
   if(g)g.style.display=tipo==='recorrente'?'block':'none';
   calcValorMensalConsult();
-}
-function tipoContratoLabel(t){
-  if(t==='recorrente_mensal')return'Mensal';
-  if(t==='recorrente')return'Prazo fixo';
-  return'Único';
 }
 function tipoContratoLabel(t){
   if(t==='recorrente_mensal')return'Mensal';
@@ -1670,6 +1681,8 @@ function renderConsultoria(){
     <div class="sc" style="--ac:var(--red)"><div class="sc-lbl">Gastos/Mes</div><div class="sc-val">${fmt(gas)}</div></div>
     <div class="sc" style="--ac:${rec-gas>=0?'var(--green)':'var(--red)'}"><div class="sc-lbl">Liquido</div><div class="sc-val" style="color:${rec-gas>=0?'var(--green)':'var(--red)'}">${fmt(rec-gas)}</div></div>`;
   renderConsultLista();
+  renderConsultRecCards();
+  renderConsultPgtosLista();
   renderConsultGastos();
 }
 function renderConsultLista(){
@@ -1687,11 +1700,11 @@ function renderConsultLista(){
     <div class="ci${c.ativo?'':' inativo'}">
       <div class="ci-top">
         ${chipEl(c.nome,c.tel,c.cor)}
-        <span class="badge ${pbmap[c.plano]||'bb'}" style="font-size:10px">${planNome(cfg.consultPlans,c.plano)}</span>${c.tipoContrato==='recorrente_mensal'?'<span class="badge bg" style="font-size:9px">Mensal</span>':''}${c.tipoContrato==='recorrente_mensal'?'<span class="badge bg" style="font-size:9px">Mensal</span>':''}
+        <span class="badge ${pbmap[c.plano]||'bb'}" style="font-size:10px">${planNome(cfg.consultPlans,c.plano)}</span>${c.tipoContrato==='recorrente_mensal'?'<span class="badge bg" style="font-size:9px">Mensal</span>':c.tipoContrato==='recorrente'?'<span class="badge bc" style="font-size:9px">Prazo fixo</span>':''}
       </div>
       <div class="ci-bot">
         <div class="ci-meta">
-          ${diasB(d,!c.ativo)}
+          ${diasB(dShowC,!c.ativo,c.tipoContrato)}
           ${pgtoB(st)}
           <span style="font-weight:600;color:var(--white)">${fmt(c.valor)}</span>
         </div>
@@ -1704,6 +1717,33 @@ function renderConsultLista(){
       </div>
       ${c.ativo?`<div>${proximoPagamentoInfo(c,cfg.consultPlans)}</div>`:''}
     </div>`}).join('');
+}
+function renderConsultRecCards(){
+  const _cm=TODAY.getMonth(),_ca=TODAY.getFullYear();
+  const _inMesC=d=>{if(!d)return false;const dt=new Date(d+'T12:00:00');return dt.getMonth()===_cm&&dt.getFullYear()===_ca;};
+  const pgtos=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo&&_inMesC(c.dataPagamento||c.inicio)).reduce((s,c)=>s+c.valor,0);
+  const el=document.getElementById('consult-rec-cards');
+  if(el)el.innerHTML=`
+    <div class="sc" style="--ac:var(--green)"><div class="sc-lbl">Pgtos Clientes</div><div class="sc-val">${fmt(pgtos)}</div></div>`;
+}
+function renderConsultPgtosLista(){
+  const _cm=TODAY.getMonth(),_ca=TODAY.getFullYear();
+  const _inMesC=d=>{if(!d)return false;const dt=new Date(d+'T12:00:00');return dt.getMonth()===_cm&&dt.getFullYear()===_ca;};
+  const el=document.getElementById('lista-consult-pgtos');if(!el)return;
+  const pgtosMes=S.consultClientes.filter(c=>c.pgto==='pago'&&c.ativo&&_inMesC(c.dataPagamento||c.inicio));
+  el.innerHTML=pgtosMes.map(c=>`
+    <div class="ci">
+      <div class="ci-top">
+        <span style="font-weight:500;color:var(--white)">${c.nome}</span>
+        <span style="color:var(--up);font-weight:600">${fmt(c.valor)}</span>
+      </div>
+      <div class="ci-bot">
+        <div class="ci-meta">
+          <span style="font-size:11px;color:var(--muted2)">${planNome(cfg.consultPlans,c.plano)}</span>
+          <span style="font-size:11px;color:var(--muted)">${c.dataPagamento||c.inicio||''}</span>
+        </div>
+      </div>
+    </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">Nenhum pagamento este mês</div>';
 }
 function renderConsultGastos(){
   const gas=S.consultGastos.reduce((s,g)=>s+parcelaVal(g),0);
@@ -1837,11 +1877,21 @@ function renderAlertas(){
 }
 
 /* RENDER: DASHBOARD */
-function gastoAtivoMes(g){
+/* Retorna {mes, ano} do período atual considerando fechamento dia 4 para cartão */
+function periodoAtual(isCartao){
   const hoje=TODAY;
+  if(isCartao&&hoje.getDate()<4){
+    // antes do dia 4: ainda estamos no período do mês anterior
+    const d=new Date(hoje.getFullYear(),hoje.getMonth()-1,1);
+    return{mes:d.getMonth(),ano:d.getFullYear()};
+  }
+  return{mes:hoje.getMonth(),ano:hoje.getFullYear()};
+}
+function gastoAtivoMes(g){
+  const isCartao=g.metodo==='Cartao de Credito'||g.metodo==='Cartão de Crédito';
+  const {mes:mesHj,ano:anoHj}=periodoAtual(isCartao);
   const ini=new Date(g.data+'T12:00:00');
   const anoIni=ini.getFullYear(),mesIni=ini.getMonth();
-  const anoHj=hoje.getFullYear(),mesHj=hoje.getMonth();
   if(anoIni>anoHj||(anoIni===anoHj&&mesIni>mesHj))return false;
   if(g.parcelas>1){
     const diff=(anoHj-anoIni)*12+(mesHj-mesIni);
@@ -1849,6 +1899,19 @@ function gastoAtivoMes(g){
   }
   if(g.tipo==='fixo')return true;
   return anoIni===anoHj&&mesIni===mesHj;
+}
+/* Para o relatório mensal: gasto cartão de março entra em março */
+function gastoAtivoParaMes(g,anoAlvo,mesAlvo){
+  const isCartao=g.metodo==='Cartao de Credito'||g.metodo==='Cartão de Crédito';
+  const ini=new Date(g.data+'T12:00:00');
+  const anoIni=ini.getFullYear(),mesIni=ini.getMonth();
+  if(anoIni>anoAlvo||(anoIni===anoAlvo&&mesIni>mesAlvo))return false;
+  if(g.parcelas>1){
+    const diff=(anoAlvo-anoIni)*12+(mesAlvo-mesIni);
+    return diff>=0&&diff<g.parcelas;
+  }
+  if(g.tipo==='fixo')return true;
+  return anoIni===anoAlvo&&mesIni===mesAlvo;
 }
 function renderDashboard(){
   checkRenovacoes();
@@ -1928,17 +1991,7 @@ function getMesData(ano, mes) {
   // mes = 0-11
   const mesStr = (m) => `${ano}-${String(m+1).padStart(2,'0')}`;
   const inMes = (data, a, m) => data && data.startsWith(mesStr(m));
-  const gastoAtivoParcela = (g, a, m) => {
-    if(!inMes(g.data,a,0)&&g.parcelas>1){
-      // verifica se esse m s est  dentro do per odo de parcelas
-      const ini = new Date(g.data);
-      const inicio = new Date(ini.getFullYear(), ini.getMonth(), 1);
-      const alvo = new Date(a, m, 1);
-      const diff = Math.floor((alvo - inicio) / (30*24*3600*1000));
-      return diff >= 0 && diff < g.parcelas;
-    }
-    return inMes(g.data,a,m);
-  };
+  const gastoAtivoParcela = (g, a, m) => gastoAtivoParaMes(g, a, m);
 
   // Letz receitas nesse m s
   const letzPgtosMes = S.letzPgtos.filter(p=>inMes(p.data,ano,mes));
