@@ -1696,6 +1696,7 @@ function renderConsultLista(){
   el.innerHTML=list.map(c=>{
     const st=statusReal(c);
     const d=c.venc?dias(c.venc):null;
+    const dShowC=(_pagouMesAtual(c)&&d!==null&&d<0)?null:d;
     return`
     <div class="ci${c.ativo?'':' inativo'}">
       <div class="ci-top">
